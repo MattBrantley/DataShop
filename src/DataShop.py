@@ -1,4 +1,6 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp
+from UserScript import *
+from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -9,16 +11,10 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
 
-class UserScript():
-    name = ''
-
-    def loadScript(self):
-        print('Hi')
-
-
 class MBTreeWidget():
     workspaceURL = ''
     directoryURL = os.path.dirname(os.path.realpath(__file__))
+    userScripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
     ITEM_GUID = Qt.UserRole
     ITEM_TYPE = Qt.UserRole+1
     ITEM_NAME = Qt.UserRole+2
@@ -27,11 +23,66 @@ class MBTreeWidget():
         super().__init__()
         self.initTree()
 
+    def getUserScripts(self):
+        uScriptDir = os.path.join(str(Path(self.directoryURL).parent), 'User Scripts')
+
+        self.userScripts['Display'] = self.getUserScriptsByType(uScriptDir, UserDisplay)
+        self.userScripts['Export'] = self.getUserScriptsByType(uScriptDir, UserExport)
+        self.userScripts['Generator'] = self.getUserScriptsByType(uScriptDir, UserGenerator)
+        self.userScripts['Import'] = self.getUserScriptsByType(uScriptDir, UserImport)
+        self.userScripts['Interact'] = self.getUserScriptsByType(uScriptDir, UserInteract)
+        self.userScripts['Operation'] = self.getUserScriptsByType(uScriptDir, UserOperation)
+
+        print(self.userScripts)
+        self.printUserScriptNames()
+
+    def loadUserScriptFromFile(self, filepath, scriptType):
+        class_inst = None
+        expected_class = 'ds_user_script'
+        py_mod = None
+
+        mod_name, file_ext = os.path.splitext(os.path.split(filepath)[-1])
+
+        if file_ext.lower() == '.py':
+            py_mod = imp.load_source(mod_name, filepath)
+#        elif file_ext.lower() == '.pyc':
+#            py_mod = imp.load_compiled(mod_name, filepath)
+        if(py_mod != None):
+            if hasattr(py_mod, expected_class):     # verify that ds_user_script is a class in this file
+                class_temp = getattr(py_mod, expected_class)()
+                if isinstance(class_temp, scriptType):      # verify that ds_user_script inherits the correct class
+                    class_inst = class_temp
+
+        return class_inst
+
+    def importUserScript(self, url, scriptType):
+        modIn = self.loadUserScriptFromFile(url, scriptType)
+        #if(modIn != None):
+        #    modIn.printName()
+        return modIn
+
+    def printUserScriptNames(self):
+        for script in self.userScripts['Display']:
+            script.printName()
+
+    def getUserScriptsByType(self, uScriptDir, scriptType):
+        userScriptsOut = []
+        typeScriptDir = os.path.join(uScriptDir, scriptType.type)
+        for root, dirs, files in os.walk(typeScriptDir):
+            for name in files:
+                url = os.path.join(root, name)
+                scriptHolder = self.importUserScript(url, scriptType)
+                if(scriptHolder != None):
+                    userScriptsOut.append(scriptHolder)
+        return userScriptsOut
+
     def initTree(self):
         self.treeWidget = QTreeWidget()
         self.treeWidget.setHeaderHidden(True)
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.openMenu)
+
+        self.getUserScripts()
 
         self.root = self.treeWidget.invisibleRootItem()
 
