@@ -1,13 +1,21 @@
 class UserScript():
     name = 'Default'
+    tooltip = 'Default Tool Tip'
     type = 'UserScript'
     url = ''
 
-    def __init__(self):
+    def __init__(self, url):
         name = 'Default'
+        self.url = url
 
     def printName(self):
         print(self.name)
+
+    def getName(self):
+        return self.name
+
+    def printURL(self):
+        print(self.url)
 
 class UserDisplay(UserScript):
     type = 'Display'
@@ -26,3 +34,6 @@ class UserInteract(UserScript):
 
 class UserOperation(UserScript):
     type = 'Operation'
+
+    def operation(self):
+        print('Nothing Happened')

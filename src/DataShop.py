@@ -11,30 +11,25 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
 
-class MBTreeWidget():
-    workspaceURL = ''
-    directoryURL = os.path.dirname(os.path.realpath(__file__))
-    userScripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
-    ITEM_GUID = Qt.UserRole
-    ITEM_TYPE = Qt.UserRole+1
-    ITEM_NAME = Qt.UserRole+2
+class userScriptsController():
+    scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
+    uScriptDir = ''
 
-    def __init__(self):
-        super().__init__()
-        self.initTree()
+    def __init__(self, dir):
+        self.uScriptDir = dir
+        self.getUserScripts()
 
     def getUserScripts(self):
-        uScriptDir = os.path.join(str(Path(self.directoryURL).parent), 'User Scripts')
+        self.scripts['Display'] = self.getUserScriptsByType(UserDisplay)
+        self.scripts['Export'] = self.getUserScriptsByType(UserExport)
+        self.scripts['Generator'] = self.getUserScriptsByType(UserGenerator)
+        self.scripts['Import'] = self.getUserScriptsByType(UserImport)
+        self.scripts['Interact'] = self.getUserScriptsByType(UserInteract)
+        self.scripts['Operation'] = self.getUserScriptsByType(UserOperation)
 
-        self.userScripts['Display'] = self.getUserScriptsByType(uScriptDir, UserDisplay)
-        self.userScripts['Export'] = self.getUserScriptsByType(uScriptDir, UserExport)
-        self.userScripts['Generator'] = self.getUserScriptsByType(uScriptDir, UserGenerator)
-        self.userScripts['Import'] = self.getUserScriptsByType(uScriptDir, UserImport)
-        self.userScripts['Interact'] = self.getUserScriptsByType(uScriptDir, UserInteract)
-        self.userScripts['Operation'] = self.getUserScriptsByType(uScriptDir, UserOperation)
-
-        print(self.userScripts)
-        self.printUserScriptNames()
+        #self.printUserScriptNames()
+        #self.printUserScriptURLs()
+        print(self.getUserScriptNamesByType(UserOperation))
 
     def loadUserScriptFromFile(self, filepath, scriptType):
         class_inst = None
@@ -45,36 +40,66 @@ class MBTreeWidget():
 
         if file_ext.lower() == '.py':
             py_mod = imp.load_source(mod_name, filepath)
-#        elif file_ext.lower() == '.pyc':
-#            py_mod = imp.load_compiled(mod_name, filepath)
-        if(py_mod != None):
-            if hasattr(py_mod, expected_class):     # verify that ds_user_script is a class in this file
-                class_temp = getattr(py_mod, expected_class)()
-                if isinstance(class_temp, scriptType):      # verify that ds_user_script inherits the correct class
+
+        if (py_mod != None):
+            if hasattr(py_mod, expected_class):  # verify that ds_user_script is a class in this file
+                class_temp = getattr(py_mod, expected_class)(filepath)
+                if isinstance(class_temp, scriptType):  # verify that ds_user_script inherits the correct class
                     class_inst = class_temp
 
         return class_inst
 
-    def importUserScript(self, url, scriptType):
-        modIn = self.loadUserScriptFromFile(url, scriptType)
-        #if(modIn != None):
-        #    modIn.printName()
-        return modIn
+    def initActionForScript(self, script, mW):
+        action = QAction(QIcon('icons4\settings-6.png'), script.name, mW)
+        action.setStatusTip(script.tooltip)
+        #action.triggered.connect(lambda: self.linePlotItem(selectedItem))
+        return action
+
+    def populateActionMenu(self, menu, scriptType, mW):
+        for script in self.scripts[scriptType.type]:
+            action = self.initActionForScript(script, mW)
+            menu.addAction(action)
 
     def printUserScriptNames(self):
-        for script in self.userScripts['Display']:
-            script.printName()
+        for sType in self.scripts.items():
+            for script in sType[1]:
+                script.printName()
 
-    def getUserScriptsByType(self, uScriptDir, scriptType):
+    def printUserScriptURLs(self):
+        for sType in self.scripts.items():
+            for script in sType[1]:
+                script.printURL()
+
+    def getUserScriptNamesByType(self, scriptType):
+        nameList = []
+        for script in self.scripts[scriptType.type]:
+            nameList.append(script.name)
+        return sorted(nameList)
+
+    def getUserScriptsByType(self, scriptType):
         userScriptsOut = []
-        typeScriptDir = os.path.join(uScriptDir, scriptType.type)
+        typeScriptDir = os.path.join(self.uScriptDir, scriptType.type)
+
         for root, dirs, files in os.walk(typeScriptDir):
             for name in files:
                 url = os.path.join(root, name)
-                scriptHolder = self.importUserScript(url, scriptType)
-                if(scriptHolder != None):
+                scriptHolder = self.loadUserScriptFromFile(url, scriptType)
+                if (scriptHolder != None):
                     userScriptsOut.append(scriptHolder)
+
         return userScriptsOut
+
+class DSWorkspace():
+    workspaceURL = ''
+    directoryURL = os.path.dirname(os.path.realpath(__file__))
+    userScripts = None
+    ITEM_GUID = Qt.UserRole
+    ITEM_TYPE = Qt.UserRole+1
+    ITEM_NAME = Qt.UserRole+2
+
+    def __init__(self):
+        super().__init__()
+        self.initTree()
 
     def initTree(self):
         self.treeWidget = QTreeWidget()
@@ -82,9 +107,13 @@ class MBTreeWidget():
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.openMenu)
 
-        self.getUserScripts()
+        self.buildUserScripts()
 
         self.root = self.treeWidget.invisibleRootItem()
+
+    def buildUserScripts(self):
+        scriptsURL = os.path.join(str(Path(self.directoryURL).parent), 'User Scripts')
+        self.userScripts = userScriptsController(scriptsURL)
 
     def setLoadedWorkspace(self, URL):
         self.workspaceURL = URL
@@ -367,6 +396,8 @@ class MBTreeWidget():
             self.contextMenu.addAction(self.multiplyOpAction)
             self.contextMenu.addAction(self.invertOpAction)
             self.contextMenu.addAction(self.cloneOpAction)
+            self.contextMenu.addSeparator()
+            self.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW)
 
         #elif(itemType == 'Operation'):
 
@@ -398,7 +429,7 @@ class mainWindow(QMainWindow):
 
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
-        self.treeHolder = MBTreeWidget()
+        self.treeHolder = DSWorkspace()
         self.statusBar()
         self.workspace = QDockWidget("No Workspace Loaded", self)
 
