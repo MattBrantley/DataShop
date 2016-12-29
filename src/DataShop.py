@@ -24,7 +24,7 @@ class userScriptsController():
         self.uScriptDir = dir
         self.parent = parent
         self.getUserScripts()
-        self.scriptProcessManager = scriptProcessManager()
+        self.processManager = scriptProcessManager()
 
     def getUserScripts(self):
         self.scripts['Display'] = self.getUserScriptsByType(UserDisplay)
@@ -33,8 +33,6 @@ class userScriptsController():
         self.scripts['Import'] = self.getUserScriptsByType(UserImport)
         self.scripts['Interact'] = self.getUserScriptsByType(UserInteract)
         self.scripts['Operation'] = self.getUserScriptsByType(UserOperation)
-
-        print(self.getUserScriptNamesByType(UserOperation))
 
     def loadUserScriptFromFile(self, filepath, scriptType):
         class_inst = None
@@ -343,34 +341,6 @@ class DSWorkspace():
             dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
             self.addItem(Op, dataRes)
             self.saveWSToSql()
-
-    def multiplyOp(self, selectedItem):
-        dataSet = self.getItemData(selectedItem)
-        dataSet = dataSet*dataSet
-        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: Multiply'}
-        dataRes = {'GUID': self.saveDSToSql('Result', dataSet), 'Type': 'Data', 'Name': 'Result'}
-        Op = self.addItem(selectedItem, dataOp)
-        self.addItem(Op, dataRes)
-        self.saveWSToSql()
-
-    def invertOp(self, selectedItem):
-        dataSet = self.getItemData(selectedItem)
-        dataSet = dataSet*-1
-        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: Invert'}
-        dataRes = {'GUID': self.saveDSToSql('Result', dataSet), 'Type': 'Data', 'Name': 'Result'}
-        Op = self.addItem(selectedItem, dataOp)
-        self.addItem(Op, dataRes)
-        self.saveWSToSql()
-
-    def cloneOp(self, selectedItem):
-        dataSet = self.getItemData(selectedItem)
-        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: Clone-Invert'}
-        dataRes1 = {'GUID': self.saveDSToSql('Result', dataSet), 'Type': 'Data', 'Name': 'Result'}
-        dataRes2 = {'GUID': self.saveDSToSql('Result', dataSet*-1), 'Type': 'Data', 'Name': 'Result'}
-        Op = self.addItem(selectedItem, dataOp)
-        self.addItem(Op, dataRes1)
-        self.addItem(Op, dataRes2)
-        self.saveWSToSql()
 
     def initContextActions(self, selectedItem):
         self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', mW)
