@@ -1,4 +1,4 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy
 from threading import Thread
 from UserScript import *
 from pathlib import Path
@@ -15,6 +15,21 @@ from PyQt5.QtGui import QIcon, QFont
 class scriptProcessManager():
     numWorkers = 4
 
+    def __init__(self, workspace):
+        self.workspace = workspace
+
+    def submitJob(self, script, selectedItem):
+        dataIn = self.workspace.getItemData(selectedItem)
+        uScript = copy.deepcopy(script)
+        uScript.clean()
+        uScript.loadData(dataIn)
+        uScript.operation()
+        dataOut = uScript.retrieveData()
+        Op = self.workspace.submitOperation(script, selectedItem)
+        for dataSet in dataOut:
+            self.workspace.submitResult(Op, dataSet)
+        del uScript # Ensures this script does not remain in memory (along with it's data objects)
+
 class userScriptsController():
     scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
     uScriptDir = ''
@@ -24,7 +39,7 @@ class userScriptsController():
         self.uScriptDir = dir
         self.parent = parent
         self.getUserScripts()
-        self.processManager = scriptProcessManager()
+        self.processManager = scriptProcessManager(parent)
 
     def getUserScripts(self):
         self.scripts['Display'] = self.getUserScriptsByType(UserDisplay)
@@ -55,7 +70,7 @@ class userScriptsController():
     def initActionForScript(self, script, mW, selectedItem):
         action = QAction(QIcon('icons4\settings-6.png'), script.name, mW)
         action.setStatusTip(script.tooltip)
-        action.triggered.connect(lambda: self.parent.runOperation(script, selectedItem))
+        action.triggered.connect(lambda: self.processManager.submitJob(script, selectedItem))
         return action
 
     def populateActionMenu(self, menu, scriptType, mW, selectedItem):
@@ -328,19 +343,14 @@ class DSWorkspace():
             self.renameDSFromSql(selectedItem)
             self.saveWSToSql()
 
-    def runOperation(self, script, selectedItem):
-        dataIn = self.getItemData(selectedItem)
-        script.clean()
-        script.loadData(dataIn)
-        script.operation()
-        dataOut = script.retrieveData()
-        script.clean()
+    def submitOperation(self, script, selectedItem):
         dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name}
-        Op = self.addItem(selectedItem, dataOp)
-        for dataSet in dataOut:
-            dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
-            self.addItem(Op, dataRes)
-            self.saveWSToSql()
+        return self.addItem(selectedItem, dataOp)
+
+    def submitResult(self, Op, dataSet):
+        dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
+        self.addItem(Op, dataRes)
+        self.saveWSToSql()
 
     def initContextActions(self, selectedItem):
         self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', mW)
