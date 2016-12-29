@@ -1,4 +1,7 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing
+from threading import Thread
+from UserScript import *
+from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -9,16 +12,92 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
 
-class UserScript():
-    name = ''
+class scriptProcessManager():
+    numWorkers = 4
 
-    def loadScript(self):
-        print('Hi')
+class userScriptsController():
+    scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
+    uScriptDir = ''
+    parent = []
 
+    def __init__(self, dir, parent):
+        self.uScriptDir = dir
+        self.parent = parent
+        self.getUserScripts()
+        self.scriptProcessManager = scriptProcessManager()
 
-class MBTreeWidget():
+    def getUserScripts(self):
+        self.scripts['Display'] = self.getUserScriptsByType(UserDisplay)
+        self.scripts['Export'] = self.getUserScriptsByType(UserExport)
+        self.scripts['Generator'] = self.getUserScriptsByType(UserGenerator)
+        self.scripts['Import'] = self.getUserScriptsByType(UserImport)
+        self.scripts['Interact'] = self.getUserScriptsByType(UserInteract)
+        self.scripts['Operation'] = self.getUserScriptsByType(UserOperation)
+
+        print(self.getUserScriptNamesByType(UserOperation))
+
+    def loadUserScriptFromFile(self, filepath, scriptType):
+        class_inst = None
+        expected_class = 'ds_user_script'
+        py_mod = None
+
+        mod_name, file_ext = os.path.splitext(os.path.split(filepath)[-1])
+
+        if file_ext.lower() == '.py':
+            py_mod = imp.load_source(mod_name, filepath)
+
+        if (py_mod != None):
+            if hasattr(py_mod, expected_class):  # verify that ds_user_script is a class in this file
+                class_temp = getattr(py_mod, expected_class)(filepath)
+                if isinstance(class_temp, scriptType):  # verify that ds_user_script inherits the correct class
+                    class_inst = class_temp
+
+        return class_inst
+
+    def initActionForScript(self, script, mW, selectedItem):
+        action = QAction(QIcon('icons4\settings-6.png'), script.name, mW)
+        action.setStatusTip(script.tooltip)
+        action.triggered.connect(lambda: self.parent.runOperation(script, selectedItem))
+        return action
+
+    def populateActionMenu(self, menu, scriptType, mW, selectedItem):
+        for script in self.scripts[scriptType.type]:
+            action = self.initActionForScript(script, mW, selectedItem)
+            menu.addAction(action)
+
+    def printUserScriptNames(self):
+        for sType in self.scripts.items():
+            for script in sType[1]:
+                script.printName()
+
+    def printUserScriptURLs(self):
+        for sType in self.scripts.items():
+            for script in sType[1]:
+                script.printURL()
+
+    def getUserScriptNamesByType(self, scriptType):
+        nameList = []
+        for script in self.scripts[scriptType.type]:
+            nameList.append(script.name)
+        return sorted(nameList)
+
+    def getUserScriptsByType(self, scriptType):
+        userScriptsOut = []
+        typeScriptDir = os.path.join(self.uScriptDir, scriptType.type)
+
+        for root, dirs, files in os.walk(typeScriptDir):
+            for name in files:
+                url = os.path.join(root, name)
+                scriptHolder = self.loadUserScriptFromFile(url, scriptType)
+                if (scriptHolder != None):
+                    userScriptsOut.append(scriptHolder)
+
+        return userScriptsOut
+
+class DSWorkspace():
     workspaceURL = ''
     directoryURL = os.path.dirname(os.path.realpath(__file__))
+    userScripts = None
     ITEM_GUID = Qt.UserRole
     ITEM_TYPE = Qt.UserRole+1
     ITEM_NAME = Qt.UserRole+2
@@ -33,7 +112,13 @@ class MBTreeWidget():
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.openMenu)
 
+        self.buildUserScripts()
+
         self.root = self.treeWidget.invisibleRootItem()
+
+    def buildUserScripts(self):
+        scriptsURL = os.path.join(str(Path(self.directoryURL).parent), 'User Scripts')
+        self.userScripts = userScriptsController(scriptsURL, self)
 
     def setLoadedWorkspace(self, URL):
         self.workspaceURL = URL
@@ -245,6 +330,20 @@ class MBTreeWidget():
             self.renameDSFromSql(selectedItem)
             self.saveWSToSql()
 
+    def runOperation(self, script, selectedItem):
+        dataIn = self.getItemData(selectedItem)
+        script.clean()
+        script.loadData(dataIn)
+        script.operation()
+        dataOut = script.retrieveData()
+        script.clean()
+        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name}
+        Op = self.addItem(selectedItem, dataOp)
+        for dataSet in dataOut:
+            dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
+            self.addItem(Op, dataRes)
+            self.saveWSToSql()
+
     def multiplyOp(self, selectedItem):
         dataSet = self.getItemData(selectedItem)
         dataSet = dataSet*dataSet
@@ -286,18 +385,6 @@ class MBTreeWidget():
         self.linePlotAction.setStatusTip('Generate a line plot of this DataSet')
         self.linePlotAction.triggered.connect(lambda: self.linePlotItem(selectedItem))
 
-        self.multiplyOpAction = QAction(QIcon('icons4\settings-6.png'), 'Op: Multiply By Self', mW)
-        self.multiplyOpAction.setStatusTip('Multiply the data set by itself')
-        self.multiplyOpAction.triggered.connect(lambda: self.multiplyOp(selectedItem))
-
-        self.invertOpAction = QAction(QIcon('icons4\settings-6.png'), 'Op: Invert Dataset', mW)
-        self.invertOpAction.setStatusTip('Invert Sign of Dataset Elements')
-        self.invertOpAction.triggered.connect(lambda: self.invertOp(selectedItem))
-
-        self.cloneOpAction = QAction(QIcon('icons4\settings-6.png'), 'Op: Clone Invert Dataset', mW)
-        self.cloneOpAction.setStatusTip('Clone Dataset to Produce Two Identical (But Inverted) Datasets')
-        self.cloneOpAction.triggered.connect(lambda: self.cloneOp(selectedItem))
-
     def initContextMenu(self):
         selectedItem = self.treeWidget.currentItem()
         itemType = selectedItem.data(0, self.ITEM_TYPE)
@@ -313,9 +400,7 @@ class MBTreeWidget():
         if(itemType == 'Data'):
             self.contextMenu.addAction(self.linePlotAction)
             self.contextMenu.addSeparator()
-            self.contextMenu.addAction(self.multiplyOpAction)
-            self.contextMenu.addAction(self.invertOpAction)
-            self.contextMenu.addAction(self.cloneOpAction)
+            self.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW, selectedItem)
 
         #elif(itemType == 'Operation'):
 
@@ -347,7 +432,7 @@ class mainWindow(QMainWindow):
 
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
-        self.treeHolder = MBTreeWidget()
+        self.treeHolder = DSWorkspace()
         self.statusBar()
         self.workspace = QDockWidget("No Workspace Loaded", self)
 
