@@ -1,4 +1,5 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing
+from threading import Thread
 from UserScript import *
 from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -11,13 +12,19 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
 
+class scriptProcessManager():
+    numWorkers = 4
+
 class userScriptsController():
     scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
     uScriptDir = ''
+    parent = []
 
-    def __init__(self, dir):
+    def __init__(self, dir, parent):
         self.uScriptDir = dir
+        self.parent = parent
         self.getUserScripts()
+        self.scriptProcessManager = scriptProcessManager()
 
     def getUserScripts(self):
         self.scripts['Display'] = self.getUserScriptsByType(UserDisplay)
@@ -27,8 +34,6 @@ class userScriptsController():
         self.scripts['Interact'] = self.getUserScriptsByType(UserInteract)
         self.scripts['Operation'] = self.getUserScriptsByType(UserOperation)
 
-        #self.printUserScriptNames()
-        #self.printUserScriptURLs()
         print(self.getUserScriptNamesByType(UserOperation))
 
     def loadUserScriptFromFile(self, filepath, scriptType):
@@ -49,15 +54,15 @@ class userScriptsController():
 
         return class_inst
 
-    def initActionForScript(self, script, mW):
+    def initActionForScript(self, script, mW, selectedItem):
         action = QAction(QIcon('icons4\settings-6.png'), script.name, mW)
         action.setStatusTip(script.tooltip)
-        #action.triggered.connect(lambda: self.linePlotItem(selectedItem))
+        action.triggered.connect(lambda: self.parent.runOperation(script, selectedItem))
         return action
 
-    def populateActionMenu(self, menu, scriptType, mW):
+    def populateActionMenu(self, menu, scriptType, mW, selectedItem):
         for script in self.scripts[scriptType.type]:
-            action = self.initActionForScript(script, mW)
+            action = self.initActionForScript(script, mW, selectedItem)
             menu.addAction(action)
 
     def printUserScriptNames(self):
@@ -113,7 +118,7 @@ class DSWorkspace():
 
     def buildUserScripts(self):
         scriptsURL = os.path.join(str(Path(self.directoryURL).parent), 'User Scripts')
-        self.userScripts = userScriptsController(scriptsURL)
+        self.userScripts = userScriptsController(scriptsURL, self)
 
     def setLoadedWorkspace(self, URL):
         self.workspaceURL = URL
@@ -325,6 +330,20 @@ class DSWorkspace():
             self.renameDSFromSql(selectedItem)
             self.saveWSToSql()
 
+    def runOperation(self, script, selectedItem):
+        dataIn = self.getItemData(selectedItem)
+        script.clean()
+        script.loadData(dataIn)
+        script.operation()
+        dataOut = script.retrieveData()
+        script.clean()
+        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name}
+        Op = self.addItem(selectedItem, dataOp)
+        for dataSet in dataOut:
+            dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
+            self.addItem(Op, dataRes)
+            self.saveWSToSql()
+
     def multiplyOp(self, selectedItem):
         dataSet = self.getItemData(selectedItem)
         dataSet = dataSet*dataSet
@@ -366,18 +385,6 @@ class DSWorkspace():
         self.linePlotAction.setStatusTip('Generate a line plot of this DataSet')
         self.linePlotAction.triggered.connect(lambda: self.linePlotItem(selectedItem))
 
-        self.multiplyOpAction = QAction(QIcon('icons4\settings-6.png'), 'Op: Multiply By Self', mW)
-        self.multiplyOpAction.setStatusTip('Multiply the data set by itself')
-        self.multiplyOpAction.triggered.connect(lambda: self.multiplyOp(selectedItem))
-
-        self.invertOpAction = QAction(QIcon('icons4\settings-6.png'), 'Op: Invert Dataset', mW)
-        self.invertOpAction.setStatusTip('Invert Sign of Dataset Elements')
-        self.invertOpAction.triggered.connect(lambda: self.invertOp(selectedItem))
-
-        self.cloneOpAction = QAction(QIcon('icons4\settings-6.png'), 'Op: Clone Invert Dataset', mW)
-        self.cloneOpAction.setStatusTip('Clone Dataset to Produce Two Identical (But Inverted) Datasets')
-        self.cloneOpAction.triggered.connect(lambda: self.cloneOp(selectedItem))
-
     def initContextMenu(self):
         selectedItem = self.treeWidget.currentItem()
         itemType = selectedItem.data(0, self.ITEM_TYPE)
@@ -393,11 +400,7 @@ class DSWorkspace():
         if(itemType == 'Data'):
             self.contextMenu.addAction(self.linePlotAction)
             self.contextMenu.addSeparator()
-            self.contextMenu.addAction(self.multiplyOpAction)
-            self.contextMenu.addAction(self.invertOpAction)
-            self.contextMenu.addAction(self.cloneOpAction)
-            self.contextMenu.addSeparator()
-            self.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW)
+            self.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW, selectedItem)
 
         #elif(itemType == 'Operation'):
 
