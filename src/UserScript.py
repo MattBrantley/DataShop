@@ -1,3 +1,6 @@
+import numpy as np
+from time import sleep
+
 class ScriptIOData():
     matrix = []
 
@@ -9,9 +12,6 @@ class UserScript():
 
     nDimension = -1
     nDataSets = -1
-
-    DataIn = []
-    DataOut = []
 
     def __init__(self, url):
         name = 'Default'
@@ -25,14 +25,6 @@ class UserScript():
 
     def printURL(self):
         print(self.url)
-
-    def loadData(self, dataSet):
-        tDataObj = ScriptIOData()
-        tDataObj.matrix = dataSet
-        self.DataIn.append(tDataObj)
-
-    def retrieveData(self):
-        return self.DataOut
 
     def clean(self):
         self.DataIn = []
@@ -56,5 +48,8 @@ class UserInteract(UserScript):
 class UserOperation(UserScript):
     type = 'Operation'
 
-    def operation(self):
+    def start(self, dOut, dIn):
+        self.operation(dOut, dIn)
+
+    def operation(self, dOut, dIn):
         print('Nothing Happened')

@@ -1,5 +1,6 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue, signal, threading
 from threading import Thread
+from multiprocessing import Queue as mpQ, Pipe
 from UserScript import *
 from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -7,28 +8,94 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 from xml.dom.minidom import *
 from xml.etree.ElementTree import *
-from PyQt5.QtCore import QVariant
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QVariant, QTimer
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
 
+def sleepFunc():
+    sleep(2)
+    print('Hi There!')
+
+class workerJob():
+    def __init__(self, script, selectedItem, workspace):
+        self.script = script
+        self.selectedItem = selectedItem
+        self.workspace = workspace
+
+        self.mgr = multiprocessing.Manager()
+
+    def start(self):
+        dataIn = self.workspace.getItemData(self.selectedItem)
+        self.uScript = self.cloneScript(self.script)
+        self.dOut = self.mgr.list()
+        self.dIn = self.loadInData(dataIn)
+        self.process = multiprocessing.Process(group=None, name='Process Worker', target=self.uScript.start, args=(self.dOut, self.dIn))
+        self.process.daemon = True
+        self.process.start()
+
+    def loadInData(self, dataSet):
+        dIn = self.mgr.list()
+        tDataObj = ScriptIOData()
+        tDataObj.matrix = dataSet
+        dIn.append(tDataObj)
+        return dIn
+
+    def cloneScript(self, script):
+        uScript = copy.deepcopy(script)
+        uScript.clean()
+        return uScript
+
 class scriptProcessManager():
     numWorkers = 4
+    activeWorkers = []
+    tickLength = 50 # Time between worker update cycles (This can slow down dramatically if the software lags)
 
     def __init__(self, workspace):
         self.workspace = workspace
+        self.jobQueue = queue.Queue()
+        self.queueUpdateTimer = QTimer()
+        self.initTimer()
 
-    def submitJob(self, script, selectedItem):
-        dataIn = self.workspace.getItemData(selectedItem)
-        uScript = copy.deepcopy(script)
-        uScript.clean()
-        uScript.loadData(dataIn)
-        uScript.operation()
-        dataOut = uScript.retrieveData()
-        Op = self.workspace.submitOperation(script, selectedItem)
+    def initTimer(self):
+        self.queueUpdateTimer.timeout.connect(lambda: self.updateQueueWorkers())
+        self.queueUpdateTimer.start(self.tickLength)
+
+    def addJobToQueue(self, uScript, selectedItem):
+        job = workerJob(uScript, selectedItem, self.workspace)
+        self.jobQueue.put(job)
+
+    def startNextWorker(self):
+        print('Starting Worker')
+        worker = self.jobQueue.get()
+        worker.start()
+        return worker
+
+    def updateQueueWorkers(self):
+        if(self.activeWorkers): # This is to counteract some weird case of the list being [None] when empty
+            for worker in self.activeWorkers: # Checking if any of the workers have returned
+                if(self.pollThreadForCompletion(worker) == False):
+                    print('Worker finished.')
+                    self.completeJob(worker)
+
+        if(len(self.activeWorkers) < self.numWorkers):
+            if(self.jobQueue.empty() is False):
+                newWorker = self.startNextWorker()
+                if(newWorker):
+                    self.activeWorkers.append(newWorker)
+
+    def pollThreadForCompletion(self, worker):
+        return worker.process.is_alive()
+
+    def completeJob(self, worker):
+        Op = self.workspace.submitOperation(worker.uScript, worker.selectedItem)
+        dataOut = worker.dOut
         for dataSet in dataOut:
             self.workspace.submitResult(Op, dataSet)
-        del uScript # Ensures this script does not remain in memory (along with it's data objects)
+        self.activeWorkers.remove(worker)
+
+    def submitJob(self, script, selectedItem):
+        self.addJobToQueue(script, selectedItem)
+
 
 class userScriptsController():
     scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
