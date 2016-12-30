@@ -334,11 +334,11 @@ class DSWorkspace():
         data = self.getItemData(selectedItem)
         pltFigure = plt.Figure()
         pltCanvas = FigureCanvas(pltFigure)
-        test = QDockWidget(selectedItem.text(0), mW)
-        test.setAttribute(Qt.WA_DeleteOnClose)
-        mW.addDockWidget(Qt.RightDockWidgetArea, test)
-        test.setFloating(True)
-        test.setWidget(pltCanvas)
+        dockWidget = QDockWidget(selectedItem.text(0), mW)
+        dockWidget.setAttribute(Qt.WA_DeleteOnClose)
+        mW.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
+        dockWidget.setFloating(True)
+        dockWidget.setWidget(pltCanvas)
         ax = pltFigure.add_subplot(111)
         if isinstance(data, np.ndarray):
             if len(data.shape) == 1:
@@ -357,7 +357,6 @@ class DSWorkspace():
                 raise ValueError('Too many dimensions to plot!')
         else:
             raise TypeError('Not an array!')
-
 
     def deleteItem(self, selectedItem):
         if(self.treeWidget.indexOfTopLevelItem(selectedItem) == -1): #Item is a child
