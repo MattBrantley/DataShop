@@ -1,5 +1,4 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing
-from threading import Thread
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue
 from UserScript import *
 from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -7,13 +6,271 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 from xml.dom.minidom import *
 from xml.etree.ElementTree import *
-from PyQt5.QtCore import QVariant
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QVariant, QTimer, QSize
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
 
+class jobWidget(QWidget):
+    WORKER_DATA = Qt.UserRole
+    ACTIVE_FLAG = Qt.UserRole+1
+    active = False
+
+    def __init__(self, processList, name, worker):
+        QWidget.__init__(self)
+        self.worker = worker
+        self.nameOP = 'Operation: ' + name
+        self.drawWidget()
+        self.jobWidgetItem = QListWidgetItem(processList)
+        self.jobWidgetItem.setData(self.WORKER_DATA, worker)
+        self.jobWidgetItem.setData(self.ACTIVE_FLAG, self.active)
+
+        self.sizer = QSize()
+        self.sizer.setHeight(26)
+
+        self.jobWidgetItem.setSizeHint(self.sizer)
+        self.jobWidgetItem.setIcon(QIcon('icons4\stop-1.png'))
+
+    def setActive(self):
+        self.active = True
+        self.jobWidgetItem.setData(self.ACTIVE_FLAG, self.active)
+        self.jobWidgetItem.setIcon(QIcon('icons4\hourglass-3.png'))
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(0)
+
+    def updateProgress(self, progress):
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(100)
+        self.progressBar.setValue(progress)
+
+    def drawWidget(self):
+        #self.setMaximumHeight(40)
+
+        self.layout = QGridLayout()
+        self.layout.setSpacing(1)
+        self.setContentsMargins(0, 0, 0, 0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.nameFont = QFont()
+        self.nameFont.setPointSize(8)
+        self.nameWidget = QLabel(self.nameOP)
+        self.nameWidget.setFont(self.nameFont)
+
+        self.progressBar = QProgressBar(self)
+        self.progressBar.setMaximumHeight(16)
+
+        self.layout.addWidget(self.nameWidget, 0, 0)
+        self.layout.addWidget(self.progressBar, 1, 0)
+
+        self.setLayout(self.layout)
+
+    def getJobWidgetItem(self):
+        return self.jobWidgetItem
+
+class workerObj():
+    jobActive = False
+    killRequest = False
+
+    def __init__(self, script, selectedItem, workspace):
+        self.script = script
+        self.selectedItem = selectedItem
+        self.workspace = workspace
+
+    def start(self, commMgr):
+        self.commMgr = commMgr
+        self.jobActive = True
+        self.jobWidget.setActive()
+        dataIn = self.workspace.getItemData(self.selectedItem)
+        self.uScript = self.cloneScript(self.script)
+        self.dOut = self.commMgr.dOut
+        self.dIn = self.loadInData(dataIn)
+        self.meta = self.commMgr.meta
+        self.process = multiprocessing.Process(group=None, name='Process Worker', target=self.uScript.start, args=(self.dOut, self.dIn, self.meta, ))
+        self.process.daemon = True
+        self.process.start()
+
+    def releaseMgr(self):
+        self.commMgr.release()
+
+    def loadInData(self, dataSet):
+        dIn = self.commMgr.dIn
+        tDataObj = ScriptIOData()
+        tDataObj.matrix = dataSet
+        dIn.append(tDataObj)
+        return dIn
+
+    def cloneScript(self, script):
+        uScript = copy.deepcopy(script)
+        uScript.clean()
+        return uScript
+
+    def createJobWidget(self, processList):
+        self.jobWidget = jobWidget(processList, self.script.name, self)
+        return self.jobWidget
+
+    def removeJobWidget(self, processList):
+        index = processList.row(self.jobWidget.getJobWidgetItem())
+        processList.takeItem(index)
+
+    def updateJobWidget(self):
+        if 'Progress' in self.meta:
+            self.jobWidget.progressInfo = True
+            self.jobWidget.updateProgress(self.meta['Progress'])
+        else:
+            self.jobWidget.progressInfo = False
+
+    def killSelf(self):
+        self.killRequest = True
+        self.process.terminate()
+
+class procCommManager():
+    inUse = False
+
+    def __init__(self):
+        self.mgr = multiprocessing.Manager()
+        self.dOut = self.mgr.list()
+        self.dIn = self.mgr.list()
+        self.meta = self.mgr.dict()
+
+    def assign(self):
+        self.inUse = True
+
+    def release(self):
+        self.inUse = False
+        self.clear()
+
+    def clear(self):
+        self.dOut = self.mgr.list()
+        self.meta = self.mgr.dict()
+        self.dIn = self.mgr.list()
+
 class scriptProcessManager():
     numWorkers = 4
+    activeWorkers = []
+    managers = []
+    tickLength = 50 # Time between worker update cycles (This can slow down dramatically if the main thread lags)
+
+    def __init__(self, workspace):
+        self.workspace = workspace
+        self.queueUpdateTimer = QTimer()
+        self.initTimer()
+        self.initProcessWidget()
+
+        print('Building I/O Managers')
+        for i in range (0, self.numWorkers):
+            self.managers.append(procCommManager())
+            self.managers[i].clear()
+        print('Done!')
+
+    def getAvailManager(self):
+        for mgr in self.managers:
+            if(mgr.inUse is False):
+                return mgr
+
+    def initProcessWidget(self):
+        self.processWidget = QDockWidget("Process Queue", self.workspace.mainWindow)
+        self.processWidget.setFeatures(QDockWidget.DockWidgetFloatable | QDockWidget.DockWidgetMovable)
+
+        self.processList = QListWidget(self.workspace.mainWindow)
+        self.processList.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.processList.customContextMenuRequested.connect(self.openMenu)
+
+        self.processWidget.setWidget(self.processList)
+        self.workspace.mainWindow.addDockWidget(Qt.RightDockWidgetArea, self.processWidget)
+
+    def addProcessToWidget(self, job):
+        newJobWidget = job.createJobWidget(self.processList)
+        self.processList.addItem(newJobWidget.getJobWidgetItem())
+        self.processList.setItemWidget(newJobWidget.getJobWidgetItem(), newJobWidget)
+
+    def initDefaultContextMenu(self):
+        selectedItem = self.processList.currentItem()
+        selectedRow = self.processList.currentRow()
+        itemWorker = selectedItem.data(Qt.UserRole)
+
+        warningAction = QAction(QIcon('icons4\multiply-1'), 'Kill Job', self.workspace.mainWindow)
+        warningAction.setStatusTip('Kill the selected job. (Note: No data will be returned)')
+        warningAction.triggered.connect(lambda: self.abortJob(itemWorker))
+        warningAction.setEnabled(True)
+
+        self.contextMenu = QMenu()
+        self.contextMenu.addAction(warningAction)
+
+    def openMenu(self, position):
+        if(self.processList.selectedItems()):
+            self.initDefaultContextMenu()
+            self.contextMenu.exec_(self.processList.viewport().mapToGlobal(position))
+
+    def initTimer(self):
+        self.queueUpdateTimer.timeout.connect(lambda: self.updateQueueWorkers())
+        self.queueUpdateTimer.start(self.tickLength)
+
+    def addJobToQueue(self, uScript, selectedItem):
+        worker = workerObj(uScript, selectedItem, self.workspace)
+        self.addProcessToWidget(worker)
+
+    def getNextAvailableWorker(self):
+        for widgetItem in self.processList.findItems('', Qt.MatchRegExp):
+            #worker = widgetItem.data(Qt.UserRole)
+            active = widgetItem.data(Qt.UserRole+1)
+            if(active == False):
+                return widgetItem.data(Qt.UserRole)
+
+    def startNextWorker(self):
+        worker = self.getNextAvailableWorker()
+        if(worker is not None):
+            tMgr = self.getAvailManager()
+            if(tMgr is not None):
+                tMgr.assign()
+                worker.start(tMgr)
+                return worker
+            else:
+                print('CRITICAL ERROR: A manager has not been released somewhere! Aborting job!!!')
+                self.abortJob(worker)
+                return None
+
+    def updateQueueWorkers(self):
+        self.processWidget.setWindowTitle('Process Queue: (' +str(self.processList.count()) + ' items)')
+        if(self.activeWorkers): # This is to counteract some weird case of the list being [None] when empty
+            for worker in self.activeWorkers: # Checking if any of the workers have returned
+                worker.updateJobWidget()
+                if(worker.killRequest == True):
+                    self.terminateRunningJob(worker)
+                elif(self.pollThreadForCompletion(worker) == False):
+                    self.completeJob(worker)
+
+        if(len(self.activeWorkers) < self.numWorkers):
+            #if(self.jobQueue.empty() is False):
+            if(self.processList.count() is not 0):
+                newWorker = self.startNextWorker()
+                if(newWorker):
+                    self.activeWorkers.append(newWorker)
+
+    def pollThreadForCompletion(self, worker):
+        return worker.process.is_alive()
+
+    def abortJob(self, worker):
+        if(worker.jobActive == False):
+            worker.removeJobWidget(self.processList)
+        else:
+            worker.killSelf()
+
+    def terminateRunningJob(self, worker):
+        worker.removeJobWidget(self.processList)
+        worker.releaseMgr()
+        self.activeWorkers.remove(worker)
+
+    def completeJob(self, worker):
+        Op = self.workspace.submitOperation(worker.uScript, worker.selectedItem)
+        dataOut = worker.dOut
+        for dataSet in dataOut:
+            self.workspace.submitResult(Op, dataSet)
+
+        worker.removeJobWidget(self.processList)
+        worker.releaseMgr()
+        self.activeWorkers.remove(worker)
+
+    def submitJob(self, script, selectedItem):
+        self.addJobToQueue(script, selectedItem)
 
 class userScriptsController():
     scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
@@ -24,7 +281,7 @@ class userScriptsController():
         self.uScriptDir = dir
         self.parent = parent
         self.getUserScripts()
-        self.processManager = scriptProcessManager()
+        self.processManager = scriptProcessManager(parent)
 
     def getUserScripts(self):
         self.scripts['Display'] = self.getUserScriptsByType(UserDisplay)
@@ -55,7 +312,7 @@ class userScriptsController():
     def initActionForScript(self, script, mW, selectedItem):
         action = QAction(QIcon('icons4\settings-6.png'), script.name, mW)
         action.setStatusTip(script.tooltip)
-        action.triggered.connect(lambda: self.parent.runOperation(script, selectedItem))
+        action.triggered.connect(lambda: self.processManager.submitJob(script, selectedItem))
         return action
 
     def populateActionMenu(self, menu, scriptType, mW, selectedItem):
@@ -100,8 +357,9 @@ class DSWorkspace():
     ITEM_TYPE = Qt.UserRole+1
     ITEM_NAME = Qt.UserRole+2
 
-    def __init__(self):
+    def __init__(self, mainWindow):
         super().__init__()
+        self.mainWindow = mainWindow
         self.initTree()
 
     def initTree(self):
@@ -328,19 +586,14 @@ class DSWorkspace():
             self.renameDSFromSql(selectedItem)
             self.saveWSToSql()
 
-    def runOperation(self, script, selectedItem):
-        dataIn = self.getItemData(selectedItem)
-        script.clean()
-        script.loadData(dataIn)
-        script.operation()
-        dataOut = script.retrieveData()
-        script.clean()
+    def submitOperation(self, script, selectedItem):
         dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name}
-        Op = self.addItem(selectedItem, dataOp)
-        for dataSet in dataOut:
-            dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
-            self.addItem(Op, dataRes)
-            self.saveWSToSql()
+        return self.addItem(selectedItem, dataOp)
+
+    def submitResult(self, Op, dataSet):
+        dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
+        self.addItem(Op, dataRes)
+        self.saveWSToSql()
 
     def initContextActions(self, selectedItem):
         self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', mW)
@@ -362,6 +615,9 @@ class DSWorkspace():
         self.contextMenu = QMenu()
 
         #Universal Workspace Context Menu Actions
+        if(self.userScripts.processManager.processList.count() is not 0):
+            self.renameAction.setEnabled(False)
+            self.deleteAction.setEnabled(False)
         self.contextMenu.addAction(self.renameAction)
         self.contextMenu.addAction(self.deleteAction)
         self.contextMenu.addSeparator()
@@ -402,7 +658,7 @@ class mainWindow(QMainWindow):
 
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
-        self.treeHolder = DSWorkspace()
+        self.treeHolder = DSWorkspace(self)
         self.statusBar()
         self.workspace = QDockWidget("No Workspace Loaded", self)
 
@@ -476,7 +732,7 @@ class mainWindow(QMainWindow):
         self.addDockWidget(Qt.LeftDockWidgetArea, self.workspace)
 
         self.setGeometry(300, 300, 640, 480)
-        self.setWindowTitle('Main window')
+        self.setWindowTitle('DataShop (Alpha)')
         self.show()
 
     def initMenu(self):
