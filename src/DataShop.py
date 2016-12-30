@@ -5,6 +5,8 @@ from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+from mpl_toolkits.mplot3d import Axes3D
+from mpl_toolkits.mplot3d import proj3d
 from xml.dom.minidom import *
 from xml.etree.ElementTree import *
 from PyQt5.QtCore import QVariant
@@ -299,18 +301,63 @@ class DSWorkspace():
             data = np.loads(results[0])
         return data
 
+    def surfacePlotItem(self, selectedItem):
+        data = self.getItemData(selectedItem)
+        fig = plt.Figure()
+        canvas = FigureCanvas(fig)
+        widget = QDockWidget(selectedItem.text(0), mW)
+        widget.setAttribute(Qt.WA_DeleteOnClose)
+        mW.addDockWidget(Qt.RightDockWidgetArea, widget)
+        widget.setFloating(True)
+        widget.setWidget(canvas)
+        ax = fig.add_subplot(111, projection='3d')
+        row, col = data.shape
+        xValues = np.arange(row)
+        yValues = np.arange(col)
+        x, y = np.meshgrid(xValues, yValues)
+        ax.set_zlim(np.min(data), np.max(data))
+        ax.set_xlim(np.min(xValues), np.max(xValues))
+        ax.set_ylim(np.min(yValues), np.max(yValues))
+        ax.view_init(elev=45, azim=45)
+        ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
+        ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
+        ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
+        ax.plot_surface(x, y, data.T, rstride=1, cstride=1, cmap='GnBu', lw=0.1)
+
     def linePlotItem(self, selectedItem):
         data = self.getItemData(selectedItem)
-        if(data is not None):
-            pltFigure = plt.Figure()
-            pltCanvas = FigureCanvas(pltFigure)
-            test = QDockWidget(selectedItem.text(0), mW)
-            test.setAttribute(Qt.WA_DeleteOnClose)
-            mW.addDockWidget(Qt.RightDockWidgetArea, test)
-            test.setFloating(True)
-            test.setWidget(pltCanvas)
-            ax = pltFigure.add_subplot(111)
-            ax.plot(data, 'r-')
+        pltFigure = plt.Figure()
+        pltCanvas = FigureCanvas(pltFigure)
+        test = QDockWidget(selectedItem.text(0), mW)
+        test.setAttribute(Qt.WA_DeleteOnClose)
+        mW.addDockWidget(Qt.RightDockWidgetArea, test)
+        test.setFloating(True)
+        test.setWidget(pltCanvas)
+        ax = pltFigure.add_subplot(111)
+        if isinstance(data, np.ndarray):
+            if len(data.shape) == 1:
+                ax.plot(data)
+            elif len(data.shape) == 2:
+                row, col = data.shape
+                if col == 1:
+                    ax.plot(data[:, 0])
+                elif col == 2:
+                    ax.plot(data[:, 0], data[:, 1])
+                elif row == 2:
+                    ax.plot(data[0], data[1])
+                else:
+                    raise ValueError('Too many rows or columns of data!')
+            else:
+                raise ValueError('Too many dimensions to plot!')
+        else:
+            raise TypeError('Not an array!')
+
 
     def deleteItem(self, selectedItem):
         if(self.treeWidget.indexOfTopLevelItem(selectedItem) == -1): #Item is a child
@@ -355,6 +402,10 @@ class DSWorkspace():
         self.linePlotAction.setStatusTip('Generate a line plot of this DataSet')
         self.linePlotAction.triggered.connect(lambda: self.linePlotItem(selectedItem))
 
+        self.surfacePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Surface Plot', mW)
+        self.surfacePlotAction.setStatusTip('Generate a surface plot of this DataSet')
+        self.surfacePlotAction.triggered.connect(lambda: self.surfacePlotItem(selectedItem))
+
     def initContextMenu(self):
         selectedItem = self.treeWidget.currentItem()
         itemType = selectedItem.data(0, self.ITEM_TYPE)
@@ -369,6 +420,7 @@ class DSWorkspace():
         #Type Specific Context Menu Actions
         if(itemType == 'Data'):
             self.contextMenu.addAction(self.linePlotAction)
+            self.contextMenu.addAction(self.surfacePlotAction)
             self.contextMenu.addSeparator()
             self.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW, selectedItem)
 
