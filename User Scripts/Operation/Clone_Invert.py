@@ -6,7 +6,7 @@ class ds_user_script(UserOperation):
     nDimension = 2
     nDataSets = 1
 
-    def operation(self, DataOut, DataIn):
+    def operation(self, DataOut, DataIn, Meta):
         outputData1 = ScriptIOData()
         outputData2 = ScriptIOData()
         outputData1.matrix = DataIn[0].matrix*-1

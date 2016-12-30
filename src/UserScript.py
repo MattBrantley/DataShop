@@ -48,8 +48,8 @@ class UserInteract(UserScript):
 class UserOperation(UserScript):
     type = 'Operation'
 
-    def start(self, dOut, dIn):
-        self.operation(dOut, dIn)
+    def start(self, dOut, dIn, meta):
+        self.operation(dOut, dIn, meta)
 
-    def operation(self, dOut, dIn):
+    def operation(self, dOut, dIn, meta):
         print('Nothing Happened')
