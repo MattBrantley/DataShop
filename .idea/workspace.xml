@@ -2,20 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0f731688-f0e3-415b-94a1-f2e5f4131be2" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/FRMYGG (1D) - Copy.csv" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/Workspace.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/Workspace2.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/Workspace3.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/Workspace4.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/Workspace5.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/Workspace6.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/Test Data/Workspace7.db" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/User Scripts/Operation/Wait 5 Seconds.py" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/Clone_Invert.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/Clone_Invert.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/Invert.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/Invert.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/Multply.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/Multply.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/DataShop.py" afterPath="$PROJECT_DIR$/src/DataShop.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/UserScript.py" afterPath="$PROJECT_DIR$/src/UserScript.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -33,8 +20,8 @@
       <file leaf-file-name="DataShop.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/DataShop.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="328">
-              <caret line="619" column="47" lean-forward="true" selection-start-line="619" selection-start-column="47" selection-end-line="619" selection-end-column="47" />
+            <state relative-caret-position="391">
+              <caret line="63" column="35" lean-forward="true" selection-start-line="63" selection-start-column="35" selection-end-line="63" selection-end-column="35" />
               <folding>
                 <element signature="e#0#127#0" expanded="true" />
                 <element signature="e#739#1222#0" expanded="false" />
@@ -125,8 +112,8 @@
       <file leaf-file-name="UserScript.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/UserScript.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="484">
-              <caret line="48" column="22" lean-forward="true" selection-start-line="48" selection-start-column="22" selection-end-line="48" selection-end-column="22" />
+            <state relative-caret-position="612">
+              <caret line="48" column="22" lean-forward="false" selection-start-line="48" selection-start-column="22" selection-end-line="48" selection-end-column="22" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
                 <element signature="e#271#310#0" expanded="false" />
@@ -148,8 +135,8 @@
       <file leaf-file-name="Wait 10 Seconds.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 10 Seconds.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="16" column="34" lean-forward="true" selection-start-line="16" selection-start-column="34" selection-end-line="16" selection-end-column="34" />
+            <state relative-caret-position="255">
+              <caret line="16" column="34" lean-forward="false" selection-start-line="16" selection-start-column="34" selection-end-line="16" selection-end-column="34" />
               <folding>
                 <element signature="e#0#50#0" expanded="true" />
               </folding>
@@ -160,8 +147,8 @@
       <file leaf-file-name="Locked Thread.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Locked Thread.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
-              <caret line="20" column="34" lean-forward="true" selection-start-line="20" selection-start-column="34" selection-end-line="20" selection-end-column="34" />
+            <state relative-caret-position="323">
+              <caret line="20" column="34" lean-forward="false" selection-start-line="20" selection-start-column="34" selection-end-line="20" selection-end-column="34" />
               <folding>
                 <element signature="e#0#50#0" expanded="true" />
               </folding>
@@ -183,7 +170,7 @@
         <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Invert.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="187">
-              <caret line="11" column="47" lean-forward="true" selection-start-line="11" selection-start-column="47" selection-end-line="11" selection-end-column="47" />
+              <caret line="11" column="47" lean-forward="false" selection-start-line="11" selection-start-column="47" selection-end-line="11" selection-end-column="47" />
               <folding />
             </state>
           </provider>
@@ -193,7 +180,7 @@
         <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Multply.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="136">
-              <caret line="8" column="47" lean-forward="true" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
+              <caret line="8" column="47" lean-forward="false" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
               <folding />
             </state>
           </provider>
@@ -284,6 +271,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -312,7 +300,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="Scratches" />
     </panes>
   </component>
@@ -650,6 +637,161 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/UserScript.py">
       <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="612">
+          <caret line="48" column="22" lean-forward="false" selection-start-line="48" selection-start-column="22" selection-end-line="48" selection-end-column="22" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#271#310#0" expanded="false" />
+            <element signature="e#345#361#0" expanded="false" />
+            <element signature="e#394#410#0" expanded="false" />
+            <element signature="e#444#459#0" expanded="false" />
+            <element signature="e#490#532#0" expanded="false" />
+            <element signature="e#569#585#0" expanded="false" />
+            <element signature="e#621#636#0" expanded="false" />
+            <element signature="e#675#693#0" expanded="false" />
+            <element signature="e#729#744#0" expanded="false" />
+            <element signature="e#782#799#0" expanded="false" />
+            <element signature="e#987#1012#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 10 Seconds.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="16" column="34" lean-forward="false" selection-start-line="16" selection-start-column="34" selection-end-line="16" selection-end-column="34" />
+          <folding>
+            <element signature="e#0#50#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Locked Thread.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="323">
+          <caret line="20" column="34" lean-forward="false" selection-start-line="20" selection-start-column="34" selection-end-line="20" selection-end-column="34" />
+          <folding>
+            <element signature="e#0#50#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Clone_Invert.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="45" lean-forward="false" selection-start-line="8" selection-start-column="45" selection-end-line="8" selection-end-column="45" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Invert.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="187">
+          <caret line="11" column="47" lean-forward="false" selection-start-line="11" selection-start-column="47" selection-end-line="11" selection-end-column="47" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Multply.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="136">
+          <caret line="8" column="47" lean-forward="false" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/DataShop.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#127#0" expanded="true" />
+            <element signature="e#739#1222#0" expanded="false" />
+            <element signature="e#1257#1487#0" expanded="false" />
+            <element signature="e#1537#1652#0" expanded="false" />
+            <element signature="e#1688#2282#0" expanded="false" />
+            <element signature="e#2324#2349#0" expanded="false" />
+            <element signature="e#2374#4145#0" expanded="false" />
+            <element signature="e#2482#2578#0" expanded="false" />
+            <element signature="e#2618#3154#0" expanded="false" />
+            <element signature="e#3190#3212#0" expanded="false" />
+            <element signature="e#3257#3395#0" expanded="false" />
+            <element signature="e#3440#3518#0" expanded="false" />
+            <element signature="e#3572#3665#0" expanded="false" />
+            <element signature="e#3719#3813#0" expanded="false" />
+            <element signature="e#3854#4055#0" expanded="false" />
+            <element signature="e#4089#4145#0" expanded="false" />
+            <element signature="e#4176#4616#0" expanded="false" />
+            <element signature="e#4223#4366#0" expanded="false" />
+            <element signature="e#4398#4415#0" expanded="false" />
+            <element signature="e#4448#4487#0" expanded="false" />
+            <element signature="e#4518#4616#0" expanded="false" />
+            <element signature="e#4866#5188#0" expanded="false" />
+            <element signature="e#5229#5317#0" expanded="false" />
+            <element signature="e#5360#5898#0" expanded="false" />
+            <element signature="e#5947#6151#0" expanded="false" />
+            <element signature="e#6199#6742#0" expanded="false" />
+            <element signature="e#6786#6951#0" expanded="false" />
+            <element signature="e#6986#7111#0" expanded="false" />
+            <element signature="e#7173#7270#0" expanded="false" />
+            <element signature="e#7318#7571#0" expanded="false" />
+            <element signature="e#7612#8037#0" expanded="false" />
+            <element signature="e#8081#8929#0" expanded="false" />
+            <element signature="e#8703#8929#0" expanded="false" />
+            <element signature="e#8986#9018#0" expanded="false" />
+            <element signature="e#9060#9187#0" expanded="false" />
+            <element signature="e#9240#9350#0" expanded="false" />
+            <element signature="e#9395#9702#0" expanded="false" />
+            <element signature="e#9836#12863#0" expanded="false" />
+            <element signature="e#10022#10161#0" expanded="false" />
+            <element signature="e#10201#10636#0" expanded="false" />
+            <element signature="e#10706#11345#0" expanded="false" />
+            <element signature="e#11416#11641#0" expanded="false" />
+            <element signature="e#11721#11872#0" expanded="false" />
+            <element signature="e#11918#12023#0" expanded="false" />
+            <element signature="e#12068#12172#0" expanded="false" />
+            <element signature="e#12234#12373#0" expanded="false" />
+            <element signature="e#12431#12863#0" expanded="false" />
+            <element signature="e#13127#13206#0" expanded="false" />
+            <element signature="e#13240#13548#0" expanded="false" />
+            <element signature="e#13784#13968#0" expanded="false" />
+            <element signature="e#14015#14572#0" expanded="false" />
+            <element signature="e#14603#15564#0" expanded="false" />
+            <element signature="e#15610#15717#0" expanded="false" />
+            <element signature="e#15781#15950#0" expanded="false" />
+            <element signature="e#15988#16634#0" expanded="false" />
+            <element signature="e#16674#16843#0" expanded="false" />
+            <element signature="e#16880#17320#0" expanded="false" />
+            <element signature="e#17369#17900#0" expanded="false" />
+            <element signature="e#17955#18182#0" expanded="false" />
+            <element signature="e#18237#18494#0" expanded="false" />
+            <element signature="e#18533#19010#0" expanded="false" />
+            <element signature="e#19054#19170#0" expanded="false" />
+            <element signature="e#19217#19853#0" expanded="false" />
+            <element signature="e#19899#19945#0" expanded="false" />
+            <element signature="e#19981#20449#0" expanded="false" />
+            <element signature="e#20500#20864#0" expanded="false" />
+            <element signature="e#20916#21384#0" expanded="false" />
+            <element signature="e#21434#21822#0" expanded="false" />
+            <element signature="e#21872#22125#0" expanded="false" />
+            <element signature="e#22188#22317#0" expanded="false" />
+            <element signature="e#22368#22525#0" expanded="false" />
+            <element signature="e#24283#24522#0" expanded="false" />
+            <element signature="e#24566#24863#0" expanded="false" />
+            <element signature="e#24902#24924#0" expanded="false" />
+            <element signature="e#24961#29493#0" expanded="false" />
+            <element signature="e#25054#25347#0" expanded="false" />
+            <element signature="e#25391#26335#0" expanded="false" />
+            <element signature="e#26372#27803#0" expanded="false" />
+            <element signature="e#27835#28487#0" expanded="false" />
+            <element signature="e#28521#29014#0" expanded="false" />
+            <element signature="e#29051#29493#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/UserScript.py">
+      <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="306">
           <caret line="18" column="0" lean-forward="true" selection-start-line="18" selection-start-column="0" selection-end-line="18" selection-end-column="0" />
           <folding>
@@ -737,7 +879,7 @@
     <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Multply.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
-          <caret line="8" column="47" lean-forward="true" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
+          <caret line="8" column="47" lean-forward="false" selection-start-line="8" selection-start-column="47" selection-end-line="8" selection-end-column="47" />
           <folding />
         </state>
       </provider>
@@ -745,23 +887,16 @@
     <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Invert.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="187">
-          <caret line="11" column="47" lean-forward="true" selection-start-line="11" selection-start-column="47" selection-end-line="11" selection-end-column="47" />
+          <caret line="11" column="47" lean-forward="false" selection-start-line="11" selection-start-column="47" selection-end-line="11" selection-end-column="47" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 5 Seconds.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="12" column="34" lean-forward="false" selection-start-line="12" selection-start-column="34" selection-end-line="12" selection-end-column="34" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 5 Seconds.py" />
     <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Locked Thread.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
-          <caret line="20" column="34" lean-forward="true" selection-start-line="20" selection-start-column="34" selection-end-line="20" selection-end-column="34" />
+        <state relative-caret-position="323">
+          <caret line="20" column="34" lean-forward="false" selection-start-line="20" selection-start-column="34" selection-end-line="20" selection-end-column="34" />
           <folding>
             <element signature="e#0#50#0" expanded="true" />
           </folding>
@@ -770,8 +905,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/UserScript.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="484">
-          <caret line="48" column="22" lean-forward="true" selection-start-line="48" selection-start-column="22" selection-end-line="48" selection-end-column="22" />
+        <state relative-caret-position="612">
+          <caret line="48" column="22" lean-forward="false" selection-start-line="48" selection-start-column="22" selection-end-line="48" selection-end-column="22" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
             <element signature="e#271#310#0" expanded="false" />
@@ -791,8 +926,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 10 Seconds.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="16" column="34" lean-forward="true" selection-start-line="16" selection-start-column="34" selection-end-line="16" selection-end-column="34" />
+        <state relative-caret-position="255">
+          <caret line="16" column="34" lean-forward="false" selection-start-line="16" selection-start-column="34" selection-end-line="16" selection-end-column="34" />
           <folding>
             <element signature="e#0#50#0" expanded="true" />
           </folding>
@@ -801,8 +936,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/DataShop.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="328">
-          <caret line="619" column="47" lean-forward="true" selection-start-line="619" selection-start-column="47" selection-end-line="619" selection-end-column="47" />
+        <state relative-caret-position="391">
+          <caret line="63" column="35" lean-forward="true" selection-start-line="63" selection-start-column="35" selection-end-line="63" selection-end-column="35" />
           <folding>
             <element signature="e#0#127#0" expanded="true" />
             <element signature="e#739#1222#0" expanded="false" />
