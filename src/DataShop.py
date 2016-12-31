@@ -484,7 +484,7 @@ class DSWorkspace():
             self.treeItemFromXMLItem(child, nTreeItem)
 
     def newWorkspace(self):
-        fname = QFileDialog.getSaveFileName(mW, 'Save File', self.directoryURL)
+        fname = QFileDialog.getSaveFileName(mW, 'Save File', self.directoryURL, filter='*.db')
         if fname[0]:
             self.treeWidget.clear()
             xmlString = tostring(self.toXML(), encoding="unicode")
@@ -542,7 +542,7 @@ class DSWorkspace():
         conn.close()
 
     def loadWSFromSql(self):
-        fname = QFileDialog.getOpenFileName(mW, 'Open File', self.directoryURL)
+        fname = QFileDialog.getOpenFileName(mW, 'Open File', self.directoryURL, filter='*.db')
         if fname[0]:
             self.setLoadedWorkspace(fname[0])
             conn = sqlite3.connect(fname[0])
@@ -587,13 +587,17 @@ class DSWorkspace():
     def importData(self):
         #process = psutil.Process(os.getpid())
         #print(process.memory_info().rss)
-        fname = QFileDialog.getOpenFileName(mW, 'Open File', self.workspaceURL)
+        fname = QFileDialog.getOpenFileName(mW, 'Open File', self.workspaceURL, filter='*.csv')
         if fname[0]:
-            data = np.genfromtxt(fname[0], delimiter=',')
-            name = self.cleanStringName(os.path.basename(fname[0]))
-            data = {'GUID': self.saveDSToSql(name, data), 'Type': 'Data', 'Name': name}
-            self.addItem(self.root, data)
-            self.saveWSToSql()
+            try:
+                data = np.genfromtxt(fname[0], delimiter=',')
+                name = self.cleanStringName(os.path.basename(fname[0]))
+                data = {'GUID': self.saveDSToSql(name, data), 'Type': 'Data', 'Name': name}
+                self.addItem(self.root, data)
+                self.saveWSToSql()
+            except ValueError:
+                print('Import Error, .csv might be corrupted.')
+
 
     def getItemData(self, selectedItem):
         conn = sqlite3.connect(self.workspaceURL)
@@ -609,43 +613,67 @@ class DSWorkspace():
         return data
 
     def surfacePlotItem(self, selectedItem):
-        data = self.getItemData(selectedItem)
-        fig = plt.Figure()
-        canvas = FigureCanvas(fig)
-        widget = QDockWidget(selectedItem.text(0), mW)
-        widget.setAttribute(Qt.WA_DeleteOnClose)
-        mW.addDockWidget(Qt.RightDockWidgetArea, widget)
-        widget.setFloating(True)
-        widget.setWidget(canvas)
-        ax = fig.add_subplot(111, projection='3d')
-        row, col = data.shape
-        xValues = np.arange(row)
-        yValues = np.arange(col)
-        x, y = np.meshgrid(xValues, yValues)
-        ax.set_zlim(np.min(data), np.max(data))
-        ax.set_xlim(np.min(xValues), np.max(xValues))
-        ax.set_ylim(np.min(yValues), np.max(yValues))
-        ax.view_init(elev=45, azim=45)
-        ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
-        ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
-        ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_zticks([])
-        ax.plot_surface(x, y, data.T, rstride=1, cstride=1, cmap='GnBu', lw=0.1)
-
-    def linePlotItem(self, selectedItem):
-        data = self.getItemData(selectedItem)
-        pltFigure = plt.Figure()
-        pltCanvas = FigureCanvas(pltFigure)
         dockWidget = QDockWidget(selectedItem.text(0), mW)
+        multiWidget = QWidget()
+        layout = QGridLayout()
+        pltFigure = plt.figure()
+        pltCanvas = FigureCanvas(pltFigure)
+        pltToolbar = NavigationToolbar(pltCanvas, dockWidget)
+        layout.addWidget(pltToolbar)
+        layout.addWidget(pltCanvas)
+        multiWidget.setLayout(layout)
+        dockWidget.setWidget(multiWidget)
         dockWidget.setAttribute(Qt.WA_DeleteOnClose)
         mW.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
         dockWidget.setFloating(True)
-        dockWidget.setWidget(pltCanvas)
+        data = self.getItemData(selectedItem)
+        ax = pltFigure.add_subplot(111, projection='3d')
+
+        if isinstance(data, np.ndarray):
+            if len(data.shape) == 2:
+                row, col = data.shape
+                xValues = np.arange(row)
+                yValues = np.arange(col)
+                x, y = np.meshgrid(xValues, yValues)
+                ax.set_zlim(np.min(data), np.max(data))
+                ax.set_xlim(np.min(xValues), np.max(xValues))
+                ax.set_ylim(np.min(yValues), np.max(yValues))
+                ax.view_init(elev=45, azim=45)
+                ax.w_xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+                ax.w_yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+                ax.w_zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+                ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
+                ax.w_yaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
+                ax.w_zaxis.line.set_color((1.0, 1.0, 1.0, 1.0))
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set_zticks([])
+                try:
+                    ax.plot_surface(x, y, data.T, rstride=1, cstride=1,
+                                    cmap='GnBu', lw=0.1)
+                except:
+                    pass
+            else:
+                dockWidget.close()
+        else:
+            dockWidget.close()
+
+    def linePlotItem(self, selectedItem):
+        dockWidget = QDockWidget(selectedItem.text(0), mW)
+        multiWidget = QWidget()
+        layout = QGridLayout()
+        pltFigure = plt.figure()
+        pltCanvas = FigureCanvas(pltFigure)
+        pltToolbar = NavigationToolbar(pltCanvas, dockWidget)
+        layout.addWidget(pltToolbar)
+        layout.addWidget(pltCanvas)
+        multiWidget.setLayout(layout)
+        dockWidget.setWidget(multiWidget)
+        dockWidget.setAttribute(Qt.WA_DeleteOnClose)
+        mW.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
+        dockWidget.setFloating(True)
+
+        data = self.getItemData(selectedItem)
         ax = pltFigure.add_subplot(111)
         if isinstance(data, np.ndarray):
             if len(data.shape) == 1:
@@ -653,17 +681,28 @@ class DSWorkspace():
             elif len(data.shape) == 2:
                 row, col = data.shape
                 if col == 1:
-                    ax.plot(data[:, 0])
+                    try:
+                        ax.plot(data[:, 0])
+                    except:
+                        # Should add in a popup for the user to know that
+                        # the argument was wrong, or some other feedback.
+                        pass
                 elif col == 2:
-                    ax.plot(data[:, 0], data[:, 1])
+                    try:
+                        ax.plot(data[:, 0], data[:, 1])
+                    except:
+                        pass
                 elif row == 2:
-                    ax.plot(data[0], data[1])
+                    try:
+                        ax.plot(data[0], data[1])
+                    except:
+                        pass
                 else:
-                    raise ValueError('Too many rows or columns of data!')
+                    dockWidget.close()
             else:
-                raise ValueError('Too many dimensions to plot!')
+                dockWidget.close()
         else:
-            raise TypeError('Not an array!')
+            dockWidget.close()
 
     def deleteItem(self, selectedItem):
         if(self.treeWidget.indexOfTopLevelItem(selectedItem) == -1): #Item is a child
