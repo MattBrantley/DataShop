@@ -18,7 +18,7 @@ class SettingsObject():
     def verify(self):
         return True
 
-class RingSettingsObject():
+class RingSettingsObject(SettingsObject):
     type = 'Ring Settings Object'
 
     def __init__(self, **kwargs):
@@ -43,7 +43,7 @@ class RingSettingsObject():
     def getUserSetting(self):
         return str(self.widget.currentText())
 
-class IntegerSettingsObject():
+class IntegerSettingsObject(SettingsObject):
     type = 'Integer Settings Object'
 
     def __init__(self, **kwargs):
@@ -71,12 +71,79 @@ class IntegerSettingsObject():
             return True
 
     def drawWidget(self):
-        self.widget = QLineEdit(str(self.default))
-        self.widget.setValidator(QIntValidator(self.minimum, self.maximum))
+        self.widget = QSpinBox()
+        self.widget.setMinimum(self.minimum)
+        self.widget.setMaximum(self.maximum)
+        self.widget.setValue(self.default)
         return self.widget
 
     def getUserSetting(self):
-        return int(self.widget.text())
+        return self.widget.value()
+
+class FloatSettingsObject(SettingsObject):
+    type = 'Float Settings Object'
+
+    def __init__(self, **kwargs):
+        self.minimum = kwargs.get('minimum', sys.float_info.min)
+        self.maximum = kwargs.get('maximum', sys.float_info.max)
+        self.decimals = kwargs.get('decimals', 4)
+        self.default = kwargs.get('default', 1)
+
+        self.lastVal = self.default
+
+    def setMinimum(self, val):
+        self.minimum = val
+
+    def setMaximum(self, val):
+        self.maximum = val
+
+    def setDecimals(self, val):
+        self.decimals = val
+
+    def setDefault(self, val):
+        self.default = val
+
+    def drawWidget(self):
+        self.widget = QLineEdit(str(self.default))
+        self.validator = QDoubleValidator(self.minimum, self.maximum, self.decimals)
+        self.widget.setValidator(self.validator)
+        self.widget.textChanged.connect(self.verify)
+        return self.widget
+
+    def verify(self, string):
+        if(string == '' or string == '-'):
+            self.lastVal = 0
+            return
+        result = self.validator.validate(string, 0)
+        if(result[0] == QValidator.Acceptable):
+            self.lastVal = float(self.widget.text())
+        else:
+            self.widget.setText(str(self.lastVal))
+
+    def getUserSetting(self):
+        if(self.widget.text() == '-'):
+            return 0.0
+        elif(self.widget.text() == ''):
+            return 0.0
+        else:
+            return float(self.widget.text())
+
+class BoolSettingsObject(SettingsObject):
+    type = 'Boolean Settings Object'
+
+    def __init__(self, **kwargs):
+        self.default = kwargs.get('default', False)
+
+    def setDefault(self, val):
+        self.default = val
+
+    def drawWidget(self):
+        self.widget = QCheckBox()
+        self.widget.setChecked(self.default)
+        return self.widget
+
+    def getUserSetting(self):
+        return self.widget.isChecked()
 
 class UserScript():
     name = 'Default'

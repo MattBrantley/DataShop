@@ -89,6 +89,7 @@ class workerObj():
 
         if(self.uScript.settings):  #Settings were reserved by script - show settings window
             self.drawSettingWindow()
+            print('Loading')
             self.loadUserSettings()
         else:                       #No settings were reserved by script - only use default settings
             self.loadDefaultSettings()
@@ -100,12 +101,12 @@ class workerObj():
 
     def drawSettingWindow(self):
         self.dialogBox = QDialog(self.workspace.mainWindow)
+        self.dialogBox.setMinimumWidth(300)
         self.dialogBox.setWindowTitle(self.uScript.name)
         self.dialogBox.setWindowIcon(QIcon('icons4\switch-4.png'))
         layout = QGridLayout()
         index = 0
-        for key, setting in self.uScript.settings.items():
-            print('Drawing: ' + str(index) + ':' + key)
+        for key, setting in sorted(self.uScript.settings.items()):
             label = QLabel(key+':')
             layout.addWidget(label, index, 0)
             tWidget = setting.drawWidget()
