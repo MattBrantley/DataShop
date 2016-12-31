@@ -86,9 +86,54 @@ class workerObj():
         self.dOut = self.commMgr.dOut
         self.dIn = self.loadInData(dataIn)
         self.meta = self.commMgr.meta
-        self.process = multiprocessing.Process(group=None, name='Process Worker', target=self.uScript.start, args=(self.dOut, self.dIn, self.meta, ))
-        self.process.daemon = True
-        self.process.start()
+
+        self.loadDefaultSettings()
+        self.drawSettingWindow()
+        self.loadUserSettings()
+        if(self.killRequest == False):
+            self.process = multiprocessing.Process(group=None, name='Process Worker', target=self.uScript.start, args=(self.dOut, self.dIn, self.meta, self.uScript.settings, ))
+            self.process.daemon = True
+            self.process.start()
+
+    def drawSettingWindow(self):
+        self.dialogBox = QDialog(self.workspace.mainWindow)
+        self.dialogBox.setWindowTitle(self.uScript.name)
+        self.dialogBox.setWindowIcon(QIcon('icons4\switch-4.png'))
+        layout = QGridLayout()
+        index = 0
+        for key, setting in self.uScript.settings.items():
+            label = QLabel(key+':')
+            layout.addWidget(label, index, 0)
+            tWidget = setting.drawWidget(self.workspace.mainWindow)
+            layout.addWidget(tWidget, index, 1)
+            index += 1
+
+        okayButton = QPushButton('Accept')
+        okayButton.clicked.connect(self.acceptSettingWindow)
+        cancelButton = QPushButton('Cancel')
+        cancelButton.clicked.connect(self.rejectSettingWindow)
+        layout.addWidget(okayButton, index, 0)
+        layout.addWidget(cancelButton, index, 1)
+        self.dialogBox.setLayout(layout)
+        if(self.dialogBox.exec()):
+            self.killRequest = False
+        else:
+            self.killRequest = True
+
+
+    def acceptSettingWindow(self):
+        self.dialogBox.accept()
+
+    def rejectSettingWindow(self):
+        self.dialogBox.close()
+
+    def loadDefaultSettings(self):
+        for key, setting in self.uScript.settings.items():
+            self.meta[key] = setting.default
+
+    def loadUserSettings(self):
+        for key, setting in self.uScript.settings.items():
+            self.meta[key] = setting.getUserSetting()
 
     def releaseMgr(self):
         self.commMgr.release()
@@ -637,7 +682,7 @@ class DSWorkspace():
         return self.addItem(selectedItem, dataOp)
 
     def submitResult(self, Op, dataSet):
-        dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': 'Result'}
+        dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': self.cleanStringName(dataSet.name)}
         self.addItem(Op, dataRes)
         self.saveWSToSql()
 
