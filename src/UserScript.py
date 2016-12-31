@@ -15,6 +15,34 @@ class SettingsObject():
         self.widgetReturnVal = QWidget()
         return self.widgetReturnVal
 
+    def verify(self):
+        return True
+
+class RingSettingsObject():
+    type = 'Ring Settings Object'
+
+    def __init__(self, **kwargs):
+        self.ringList = []
+        self.default = 0
+
+    def addSelection(self, text):
+        self.ringList.append(text)
+        return len(self.ringList)-1
+
+    def setDefault(self, index):
+        self.default = index
+
+    def drawWidget(self):
+        self.widget = QComboBox()
+        for options in self.ringList:
+            self.widget.addItem(options)
+
+        self.widget.setCurrentIndex(self.default)
+        return self.widget
+
+    def getUserSetting(self):
+        return str(self.widget.currentText())
+
 class IntegerSettingsObject():
     type = 'Integer Settings Object'
 
@@ -42,13 +70,13 @@ class IntegerSettingsObject():
         else:
             return True
 
-    def drawWidget(self, mW):
-        self.widgetReturnVal = QLineEdit(str(self.default))
-        self.widgetReturnVal.setValidator(QIntValidator(self.minimum, self.maximum))
-        return self.widgetReturnVal
+    def drawWidget(self):
+        self.widget = QLineEdit(str(self.default))
+        self.widget.setValidator(QIntValidator(self.minimum, self.maximum))
+        return self.widget
 
     def getUserSetting(self):
-        return int(self.widgetReturnVal.text())
+        return int(self.widget.text())
 
 class UserScript():
     name = 'Default'

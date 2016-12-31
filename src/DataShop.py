@@ -87,9 +87,12 @@ class workerObj():
         self.dIn = self.loadInData(dataIn)
         self.meta = self.commMgr.meta
 
-        self.loadDefaultSettings()
-        self.drawSettingWindow()
-        self.loadUserSettings()
+        if(self.uScript.settings):  #Settings were reserved by script - show settings window
+            self.drawSettingWindow()
+            self.loadUserSettings()
+        else:                       #No settings were reserved by script - only use default settings
+            self.loadDefaultSettings()
+
         if(self.killRequest == False):
             self.process = multiprocessing.Process(group=None, name='Process Worker', target=self.uScript.start, args=(self.dOut, self.dIn, self.meta, self.uScript.settings, ))
             self.process.daemon = True
@@ -102,9 +105,10 @@ class workerObj():
         layout = QGridLayout()
         index = 0
         for key, setting in self.uScript.settings.items():
+            print('Drawing: ' + str(index) + ':' + key)
             label = QLabel(key+':')
             layout.addWidget(label, index, 0)
-            tWidget = setting.drawWidget(self.workspace.mainWindow)
+            tWidget = setting.drawWidget()
             layout.addWidget(tWidget, index, 1)
             index += 1
 
@@ -119,7 +123,6 @@ class workerObj():
             self.killRequest = False
         else:
             self.killRequest = True
-
 
     def acceptSettingWindow(self):
         self.dialogBox.accept()
