@@ -17,10 +17,10 @@ class ds_user_script(UserOperation):
     nDataSets = 2
     version = 0.1
 
-    def operation(self):
+    def operation(self, DataOut, DataIn, Meta):
         """The generic 'main' function of an operation type user script."""
-        vectorInputObject1 = self.DataIn[0]
-        vectorInputObject2 = self.DataIn[1]
+        vectorInputObject1 = DataIn[0]
+        vectorInputObject2 = DataIn[1]
         vector1 = vectorInputObject1.matrix
         vector2 = vectorInputObject2.matrix
         if not (isinstance(vector1, np.ndarray) and
@@ -30,4 +30,4 @@ class ds_user_script(UserOperation):
             r2 = vectorutils.r2calc(vector1, vector2)
             outputObject = ScriptIOData()
             outputObject.matrix = r2
-            self.DataOut.append(outputObject)
+            DataOut.append(outputObject)

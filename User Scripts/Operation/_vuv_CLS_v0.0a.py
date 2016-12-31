@@ -19,19 +19,19 @@ class ds_user_script(UserOperation):
     nDataSets = 1
     version = 0.1
 
-    def operation(self):
+    def operation(self, DataOut, DataIn, Meta):
         """The generic 'main' function of an operation type user script."""
-        dataInputObject = self.DataIn[0]
-        componentInputObject = self.DataIn[1]
+        dataInputObject = DataIn[0]
+        componentInputObject = DataIn[1]
         dataInputArray = dataInputObject.matrix
         componentInputArray = componentInputObject.matrix
         if not (isinstance(dataInputArray, np.ndarray) and
-                isisntance(componentInputArray, np.ndarray)):
+                isinstance(componentInputArray, np.ndarray)):
             raise TypeError('Is not an array!')
         else:
             solution = vuvdeconvolution.cls(dataInputArray,
                                             componentInputArray)
             outputObject = ScriptIOData()
             outputObject.matrix = solution
-            self.DataOut.append(outputObject)
+            DataOut.append(outputObject)
 
