@@ -270,7 +270,7 @@ class DSWorkspace():
                 ax.set_yticks([])
                 ax.set_zticks([])
                 try:
-                    ax.plot_surface(x, y, data.T, rstride=1, cstride=1,
+                    ax.plot_surface(x, y, data.T, rstride=1, cstride=1000,
                                     cmap='GnBu', lw=0.1)
                 except:
                     pass

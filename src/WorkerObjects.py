@@ -64,6 +64,9 @@ class jobWidget(QWidget):
 class workerObj():
     jobActive = False
     killRequest = False
+    ITEM_GUID = Qt.UserRole
+    ITEM_TYPE = Qt.UserRole+1
+    ITEM_NAME = Qt.UserRole+2
 
     def __init__(self, script, selectedItem, workspace, procManager):
         self.script = script
@@ -104,8 +107,15 @@ class workerObj():
 
         for key, setting in sorted(self.script.settings.items()):
             label = QLabel(key+':')
-            layout.addWidget(label, index, 0)
             tWidget = setting.drawWidget()
+            if(setting.primaryEnabled == True):
+                label = QLabel('*'+key+':')
+                primaryName = str(self.selectedItem.text(0))
+                #print(self.selectedItem)
+                #print(self.selectedItem.text(0))
+                primaryGUID = self.selectedItem.data(0, self.ITEM_GUID)
+                tWidget.loadPrimaryDataSet(primaryName, primaryGUID)
+            layout.addWidget(label, index, 0)
             layout.addWidget(tWidget, index, 1)
             index += 1
 

@@ -16,6 +16,7 @@ class ds_user_script(UserOperation):
     BoolSelection = BoolSettingsObject(default=True)
 
     DataSetSelection = DataSetSettingsObject(minimum=3, maximum=4)
+    OperateSelection = DataSetSettingsObject(maximum=4, primaryEnabled=True)
     DataSetSelection.setDescription('Data sets to be output after sleep.')
 
     settings = {'Length': LengthSetting,
@@ -23,7 +24,8 @@ class ds_user_script(UserOperation):
                 'Combo': SelectionSetting,
                 'Float': FloatSelection,
                 'Bool': BoolSelection,
-                'Data': DataSetSelection}
+                'Data': DataSetSelection,
+                'Data2': OperateSelection}
 
     def operation(self, DataOut, Meta):
         print('Waiting for ' + str(Meta['Length']) + ' seconds..')
@@ -32,6 +34,8 @@ class ds_user_script(UserOperation):
         print('Float selection = ' + str(Meta['Float']))
         print('Bool selection = ' + str(Meta['Bool']))
 
+        if(Meta['Combo'] == 'Option 1'):
+            print('YOU SELECTED NUMBER ! DOOD')
 
         for num in range(0, 100):
             Meta['Progress'] = num

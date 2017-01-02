@@ -2,6 +2,7 @@ from UserScript import *
 
 class SettingsObject():
     type = 'Setting'
+    primaryEnabled = False
 
     def drawWidget(self):
         self.widgetReturnVal = QWidget()
@@ -170,6 +171,7 @@ class DataSetSettingsObject(SettingsObject):
         self.minimum = kwargs.get('minimum', 0)
         self.numDims = kwargs.get('numDims', [0])
         self.description = kwargs.get('description', 'N/A')
+        self.primaryEnabled = kwargs.get('primaryEnabled', False)
 
     def setMaximum(self, val):
         self.maximum = val
@@ -184,11 +186,19 @@ class DataSetSettingsObject(SettingsObject):
         self.description = string
 
     def renderToolTipString(self):
-        return 'Description: ' + self.description + '\nMinimum Count: ' + str(self.minimum) + '\nMaximum Count: ' + str(self.maximum)
+        if(self.primaryEnabled):
+            return 'Description: ' + self.description + '\n[PRIMARY ENABLED]' + '\nMinimum Count: ' + str(self.minimum) + '\nMaximum Count: ' + str(self.maximum)
+        else:
+            return 'Description: ' + self.description + '\nMinimum Count: ' + str(self.minimum) + '\nMaximum Count: ' + str(self.maximum)
 
     def drawWidget(self):
-        self.widget = DataSetSettingWidget(self.maximum, self.minimum, self.numDims)
+        if(self.primaryEnabled == True):
+            self.maximum = 1
+            self.minimum = 1
+
+        self.widget = DataSetSettingWidget(self.maximum, self.minimum, self.numDims, self.primaryEnabled)
         self.widget.setWhatsThis(self.renderToolTipString())
+
         return self.widget
 
     def verify(self):
@@ -206,19 +216,31 @@ class DataSetSettingWidget(QListWidget):
     ITEM_GUID = Qt.UserRole
     ITEM_TYPE = Qt.UserRole+1
     ITEM_NAME = Qt.UserRole+2
+    primaryLoaded = False
 
     FILLER_TYPE_REQ = 200
 
-    def __init__(self, numSets, minSets, numDims):
+    def __init__(self, numSets, minSets, numDims, primaryEnabled):
         super().__init__()
         self.numSets = numSets
         self.minSets = minSets
         self.numDims = numDims
+        self.primaryEnabled = primaryEnabled
 
         self.setAcceptDrops(True)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.contextMenu)
-        #self.setWhatsThis('I AM A THING!')
+
+        #Matt's Hacky-Sacky way of determining row sizes!
+        self.addItem('')
+        self.rowSizeHint = self.sizeHintForRow(0)
+        self.takeItem(0)
+        #
+
+        if(self.numSets <= 10):
+            self.setMaximumHeight(self.rowSizeHint*self.numSets + 4)
+        else:
+            self.setMaximumHeight(self.rowSizeHint*10 + 4)
 
         self.drawFillerItems()
 
@@ -271,16 +293,23 @@ class DataSetSettingWidget(QListWidget):
 
     def contextMenu(self, position):
         # WARNING: Keep as little as possible (especially for QT objects) in memory or feel the wrath of multiproc's pickle! (Not joking)
-        if(self.selectedItems()):
-            selectedItem = self.selectedItems()
-            if(selectedItem[0].data(self.ITEM_TYPE) != self.FILLER_TYPE_REQ):
-                removeAction = QAction(QIcon('icons\\transfer-1.png'),'Remove', self)
-                removeAction.setStatusTip('Remove this dataSet')
-                removeAction.triggered.connect(lambda: self.removeItem(selectedItem))
+        if(self.primaryLoaded == False):
+            if(self.selectedItems()):
+                selectedItem = self.selectedItems()
+                if(selectedItem[0].data(self.ITEM_TYPE) != self.FILLER_TYPE_REQ):
+                    removeAction = QAction(QIcon('icons\\transfer-1.png'),'Remove', self)
+                    removeAction.setStatusTip('Remove this dataSet')
+                    removeAction.triggered.connect(lambda: self.removeItem(selectedItem))
 
-                contextMenu = QMenu()
-                contextMenu.addAction(removeAction)
-                contextMenu.exec_(self.viewport().mapToGlobal(position))
+                    contextMenu = QMenu()
+                    contextMenu.addAction(removeAction)
+                    contextMenu.exec_(self.viewport().mapToGlobal(position))
+        else:
+            primaryEnabledAction = QAction('This setting cannot be changed.', self)
+            primaryEnabledAction.setEnabled(False)
+            contextMenu = QMenu()
+            contextMenu.addAction(primaryEnabledAction)
+            contextMenu.exec_(self.viewport().mapToGlobal(position))
 
     def returnValues(self):
         guidList = []
@@ -289,8 +318,19 @@ class DataSetSettingWidget(QListWidget):
                 guidList.append(self.item(idx).data(self.ITEM_GUID))
         return guidList
 
+    def loadPrimaryDataSet(self, name, GUID):
+        self.primaryLoaded = True
+        self.setAcceptDrops(False)
+        self.clear()
+
+        dataObj = QListWidgetItem(name)
+        dataObj.setData(self.ITEM_GUID, GUID)
+        dataObj.setBackground(Qt.lightGray)
+        #dataObj.setForeground(Qt.darkGray)
+        self.addItem(dataObj)
+
     def dropEvent(self, event):
-        if(self.count() < self.numSets):
+        if(self.countNonFillerItems() < self.numSets):
             treeWidget = event.source() # WARNING: Do not store this in meory - will cause multiproc's pickle event to freak out!
             type = treeWidget.currentItem().data(0, self.ITEM_TYPE)
             name = treeWidget.currentItem().data(0, self.ITEM_NAME)
@@ -303,5 +343,5 @@ class DataSetSettingWidget(QListWidget):
                 self.addItem(dataObj)
                 self.checkReqItemFillers()
 
-            if(self.count() == self.numSets):
+            if(self.countNonFillerItems() == self.numSets):
                 self.setStyleSheet("""QListWidget{ background: rgb(220,220,220); }""")
