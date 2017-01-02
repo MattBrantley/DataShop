@@ -72,72 +72,85 @@ class workerObj():
     jobActive = False
     killRequest = False
 
-    def __init__(self, script, selectedItem, workspace):
+    def __init__(self, script, selectedItem, workspace, procManager):
         self.script = script
         self.selectedItem = selectedItem
         self.workspace = workspace
+        self.procManager = procManager
+        self.checkForSettings()
 
     def start(self, commMgr):
         self.commMgr = commMgr
         self.jobActive = True
         self.jobWidget.setActive()
-        dataIn = self.workspace.getItemData(self.selectedItem)
         self.uScript = self.cloneScript(self.script)
         self.dOut = self.commMgr.dOut
-        self.dIn = self.loadInData(dataIn)
         self.meta = self.commMgr.meta
 
-        if(self.uScript.settings):  #Settings were reserved by script - show settings window
-            self.drawSettingWindow()
-            print('Loading')
-            self.loadUserSettings()
-        else:                       #No settings were reserved by script - only use default settings
-            self.loadDefaultSettings()
+        self.loadUserSettings()
 
         if(self.killRequest == False):
-            self.process = multiprocessing.Process(group=None, name='Process Worker', target=self.uScript.start, args=(self.dOut, self.dIn, self.meta, self.uScript.settings, ))
+            self.process = multiprocessing.Process(group=None, name='Process Worker', target=self.uScript.start, args=(self.dOut, self.meta, self.uScript.settings, ))
             self.process.daemon = True
             self.process.start()
 
+    def checkForSettings(self):
+        if(self.script.settings):  #Settings were reserved by script - show settings window
+            self.drawSettingWindow()
+        else:                       #No settings were reserved by script - only use default settings
+            self.loadDefaultSettings()
+
     def drawSettingWindow(self):
         self.dialogBox = QDialog(self.workspace.mainWindow)
+        self.dialogBox.setModal(False)
         self.dialogBox.setMinimumWidth(300)
-        self.dialogBox.setWindowTitle(self.uScript.name)
+        self.dialogBox.setWindowTitle(self.script.name)
         self.dialogBox.setWindowIcon(QIcon('icons4\switch-4.png'))
         layout = QGridLayout()
         index = 0
-        for key, setting in sorted(self.uScript.settings.items()):
+
+        for key, setting in sorted(self.script.settings.items()):
             label = QLabel(key+':')
             layout.addWidget(label, index, 0)
             tWidget = setting.drawWidget()
             layout.addWidget(tWidget, index, 1)
             index += 1
 
-        okayButton = QPushButton('Accept')
-        okayButton.clicked.connect(self.acceptSettingWindow)
-        cancelButton = QPushButton('Cancel')
-        cancelButton.clicked.connect(self.rejectSettingWindow)
-        layout.addWidget(okayButton, index, 0)
-        layout.addWidget(cancelButton, index, 1)
+        self.okayButton = QPushButton('Accept')
+        self.okayButton.clicked.connect(lambda: self.acceptSettingWindow())
+        self.cancelButton = QPushButton('Cancel')
+        self.cancelButton.clicked.connect(lambda: self.rejectSettingWindow())
+        layout.addWidget(self.okayButton, index, 0)
+        layout.addWidget(self.cancelButton, index, 1)
+
         self.dialogBox.setLayout(layout)
-        if(self.dialogBox.exec()):
-            self.killRequest = False
-        else:
-            self.killRequest = True
+        self.dialogBox.setVisible(True)
 
     def acceptSettingWindow(self):
-        self.dialogBox.accept()
+        self.dialogBox.close()
+        self.procManager.addJobToQueue(self)
 
     def rejectSettingWindow(self):
         self.dialogBox.close()
 
     def loadDefaultSettings(self):
-        for key, setting in self.uScript.settings.items():
+        for key, setting in self.script.settings.items():
             self.meta[key] = setting.default
 
     def loadUserSettings(self):
-        for key, setting in self.uScript.settings.items():
-            self.meta[key] = setting.getUserSetting()
+        for key, setting in self.script.settings.items():
+            if(setting.type == 'DataSet Settings Object'):
+                print('Data Object!!!!')
+                DataObjList = []
+                GUIDList = setting.getUserSetting()
+                for GUID in GUIDList:
+                    tDataObj = ScriptIOData()
+                    dataIn = self.workspace.loadDataByGUID(GUID)
+                    tDataObj.matrix = dataIn
+                    DataObjList.append(tDataObj)
+                self.meta[key] = DataObjList
+            else:
+                self.meta[key] = setting.getUserSetting()
 
     def releaseMgr(self):
         self.commMgr.release()
@@ -255,8 +268,10 @@ class scriptProcessManager():
         self.queueUpdateTimer.timeout.connect(lambda: self.updateQueueWorkers())
         self.queueUpdateTimer.start(self.tickLength)
 
-    def addJobToQueue(self, uScript, selectedItem):
-        worker = workerObj(uScript, selectedItem, self.workspace)
+    def createJobForQueue(self, uScript, selectedItem):
+        worker = workerObj(uScript, selectedItem, self.workspace, self) #Worker will run and then return addJobToQueue if successful
+
+    def addJobToQueue(self, worker):
         self.addProcessToWidget(worker)
 
     def getNextAvailableWorker(self):
@@ -321,7 +336,7 @@ class scriptProcessManager():
         self.activeWorkers.remove(worker)
 
     def submitJob(self, script, selectedItem):
-        self.addJobToQueue(script, selectedItem)
+        self.createJobForQueue(script, selectedItem)
 
 class userScriptsController():
     scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
@@ -400,6 +415,12 @@ class userScriptsController():
 
         return userScriptsOut
 
+class WorkspaceTree(QTreeWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.setDragEnabled(True)
+
 class DSWorkspace():
     workspaceURL = ''
     directoryURL = os.path.dirname(os.path.realpath(__file__))
@@ -414,7 +435,7 @@ class DSWorkspace():
         self.initTree()
 
     def initTree(self):
-        self.treeWidget = QTreeWidget()
+        self.treeWidget = WorkspaceTree()
         self.treeWidget.setHeaderHidden(True)
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.openMenu)
@@ -598,11 +619,13 @@ class DSWorkspace():
             except ValueError:
                 print('Import Error, .csv might be corrupted.')
 
-
     def getItemData(self, selectedItem):
+        GUID = selectedItem.data(0, self.ITEM_GUID)
+        return self.loadDataByGUID(GUID)
+
+    def loadDataByGUID(self, GUID):
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
-        GUID = selectedItem.data(0, self.ITEM_GUID)
         c.execute('SELECT Data FROM DataSets WHERE GUID=?', (GUID, ))
         results = c.fetchone()
         conn.commit()

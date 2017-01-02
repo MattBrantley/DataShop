@@ -1,4 +1,4 @@
-import numpy as np, sys
+import numpy as np, sys, copy
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -145,6 +145,76 @@ class BoolSettingsObject(SettingsObject):
     def getUserSetting(self):
         return self.widget.isChecked()
 
+class DataSetSettingsObject(SettingsObject):
+    type = 'DataSet Settings Object'
+
+    def __init__(self, **kwargs):
+        self.count = kwargs.get('count', 1)
+        self.numDims = kwargs.get('numDims', [0])
+
+    def setCount(self, val):
+        self.count = val
+
+    def setNumDims(self, val):
+        self.numDims = val
+
+    def drawWidget(self):
+        self.widget = DataSetSettingWidget(self.count, self.numDims)
+        return self.widget
+
+    def getUserSetting(self):
+        vals = self.widget.returnValues()
+        del self.widget # This actually stop the memory management issue for self contained settings.
+        return vals
+
+class DataSetSettingWidget(QListWidget):
+    ITEM_GUID = Qt.UserRole
+    ITEM_TYPE = Qt.UserRole+1
+    ITEM_NAME = Qt.UserRole+2
+
+    def __init__(self, numSets, numDims):
+        super().__init__()
+        self.numSets = numSets
+        self.numDims = numDims
+
+        self.setAcceptDrops(True)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.contextMenu)
+
+    def removeItem(self, selectedItem):
+        index = self.row(selectedItem[0])
+        self.takeItem(index)
+
+    def contextMenu(self, position):
+        # WARNING: Keep as little as possible (especially for QT objects) in memory or feel the wrath of multiproc's pickle! (Not joking)
+        if(self.selectedItems()):
+            selectedItem = self.selectedItems()
+            removeAction = QAction(QIcon('icons\\transfer-1.png'),'Remove', self)
+            removeAction.setStatusTip('Remove this dataSet')
+            removeAction.triggered.connect(lambda: self.removeItem(selectedItem))
+
+            contextMenu = QMenu()
+            contextMenu.addAction(removeAction)
+            contextMenu.exec_(self.viewport().mapToGlobal(position))
+
+    def returnValues(self):
+        guidList = []
+        for idx in range(self.count()):
+            guidList.append(self.item(idx).data(self.ITEM_GUID))
+        return guidList
+
+    def dropEvent(self, event):
+        if(self.count() < self.numSets):
+            treeWidget = event.source() # WARNING: Do not store this in meory - will cause multiproc's pickle event to freak out!
+            type = treeWidget.currentItem().data(0, self.ITEM_TYPE)
+            name = treeWidget.currentItem().data(0, self.ITEM_NAME)
+            GUID = treeWidget.currentItem().data(0, self.ITEM_GUID)
+
+            if(type == 'Data'):
+                dataObj = QListWidgetItem(name)
+                dataObj.setData(self.ITEM_GUID, GUID)
+                self.addItem(dataObj)
+
 class UserScript():
     name = 'Default'
     tooltip = 'Default Tool Tip'
@@ -184,9 +254,9 @@ class UserInteract(UserScript):
 class UserOperation(UserScript):
     type = 'Operation'
 
-    def start(self, dOut, dIn, meta, settings):
+    def start(self, dOut, meta, settings):
         self.settings = settings
-        self.operation(dOut, dIn, meta)
+        self.operation(dOut, meta)
 
-    def operation(self, dOut, dIn, meta):
+    def operation(self, dOut, meta):
         print('Nothing Happened')
