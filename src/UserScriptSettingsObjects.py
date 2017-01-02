@@ -32,7 +32,7 @@ class RingSettingsObject(SettingsObject):
         self.description = string
 
     def renderToolTipString(self):
-        return 'Description: ' + self.description
+        return 'Description: ' + self.description + '\nCount: ' + str(self.widget.count()) + '\nDefault: ' +  self.widget.itemText(self.default)
 
     def drawWidget(self):
         self.widget = QComboBox()
