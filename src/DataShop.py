@@ -203,10 +203,16 @@ class DSWorkspace():
         str = str.replace(" ", "_")
         return str
 
+    #def importDialog(self):
+
     def importData(self):
-        #process = psutil.Process(os.getpid())
-        #print(process.memory_info().rss)
-        fname = QFileDialog.getOpenFileName(mW, 'Open File', self.workspaceURL, filter='*.csv')
+        #fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL, filter='*.csv')
+        fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL)
+        for fileURL in fname[0]:
+            fileName, fileExtension = os.path.splitext(fileURL)
+            print(fileName)
+            print(fileExtension)
+            print(fileURL)
         if fname[0]:
             try:
                 data = np.genfromtxt(fname[0], delimiter=',')
@@ -232,6 +238,16 @@ class DSWorkspace():
         if(results):
             data = np.loads(results[0])
         return data
+
+    def loadNameByGUID(self, GUID):
+        print('Loading GUID')
+        iterator = QTreeWidgetItemIterator(self.treeWidget)
+        while iterator.value():
+            item = iterator.value()
+            if(item.data(0, self.ITEM_GUID) == GUID):
+                return item.data(0, self.ITEM_NAME)
+            iterator += 1
+        return 'ERROR!'
 
     def surfacePlotItem(self, selectedItem):
         dockWidget = QDockWidget(selectedItem.text(0), mW)

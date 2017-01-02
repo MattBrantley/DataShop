@@ -111,8 +111,6 @@ class workerObj():
             if(setting.primaryEnabled == True):
                 label = QLabel('*'+key+':')
                 primaryName = str(self.selectedItem.text(0))
-                #print(self.selectedItem)
-                #print(self.selectedItem.text(0))
                 primaryGUID = self.selectedItem.data(0, self.ITEM_GUID)
                 tWidget.loadPrimaryDataSet(primaryName, primaryGUID)
             layout.addWidget(label, index, 0)
@@ -168,7 +166,10 @@ class workerObj():
                 for GUID in GUIDList:
                     tDataObj = ScriptIOData()
                     dataIn = self.workspace.loadDataByGUID(GUID)
+                    nameIn = self.workspace.loadNameByGUID(GUID)
+                    print('here')
                     tDataObj.matrix = dataIn
+                    tDataObj.name = nameIn
                     DataObjList.append(tDataObj)
                 self.meta[key] = DataObjList
             else:

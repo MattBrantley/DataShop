@@ -17,7 +17,7 @@ class ds_user_script(UserOperation):
     StringSelection = StringSettingsObject(default='A String!')
 
     DataSetSelection = DataSetSettingsObject(minimum=3, maximum=4)
-    OperateSelection = DataSetSettingsObject(maximum=4, primaryEnabled=True)
+    PrimarySelection = DataSetSettingsObject(maximum=4, primaryEnabled=True)
     DataSetSelection.setDescription('Data sets to be output after sleep.')
 
     settings = {'Length': LengthSetting,
@@ -26,7 +26,7 @@ class ds_user_script(UserOperation):
                 'Float': FloatSelection,
                 'Bool': BoolSelection,
                 'Data': DataSetSelection,
-                'Data2': OperateSelection,
+                'Data2': PrimarySelection,
                 'String': StringSelection}
 
     def operation(self, DataOut, Meta):
@@ -36,6 +36,7 @@ class ds_user_script(UserOperation):
         print('Float selection = ' + str(Meta['Float']))
         print('Bool selection = ' + str(Meta['Bool']))
         print('String selection = ' + str(Meta['String']))
+        print('Primary selection name = ' + Meta['Data2'][0].name)
 
         if(Meta['Combo'] == 'Option 1'):
             print('YOU SELECTED NUMBER ! DOOD')
