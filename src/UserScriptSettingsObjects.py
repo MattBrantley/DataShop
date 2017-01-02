@@ -163,6 +163,30 @@ class BoolSettingsObject(SettingsObject):
     def getUserSetting(self):
         return self.widget.isChecked()
 
+class StringSettingsObject(SettingsObject):
+    type = 'String Settings Object'
+
+    def __init__(self, **kwargs):
+        self.default = kwargs.get('default', '')
+        self.description = kwargs.get('description', 'N/A')
+
+    def setDefault(self, string):
+        self.default = str(string)
+
+    def setDescription(self, string):
+        self.description = string
+
+    def renderToolTipString(self):
+        return 'Description: ' + self.description + '\nDefault: ' + str(self.default)
+
+    def drawWidget(self):
+        self.widget = QLineEdit(str(self.default))
+        self.widget.setWhatsThis(self.renderToolTipString())
+        return self.widget
+
+    def getUserSetting(self):
+        return str(self.widget.text())
+
 class DataSetSettingsObject(SettingsObject):
     type = 'DataSet Settings Object'
 

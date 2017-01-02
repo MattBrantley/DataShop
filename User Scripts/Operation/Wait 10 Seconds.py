@@ -14,6 +14,7 @@ class ds_user_script(UserOperation):
     SelectionSetting.setDefault(Opt3)
     FloatSelection = FloatSettingsObject(maximum=7.2, default=-1.2)
     BoolSelection = BoolSettingsObject(default=True)
+    StringSelection = StringSettingsObject(default='A String!')
 
     DataSetSelection = DataSetSettingsObject(minimum=3, maximum=4)
     OperateSelection = DataSetSettingsObject(maximum=4, primaryEnabled=True)
@@ -25,7 +26,8 @@ class ds_user_script(UserOperation):
                 'Float': FloatSelection,
                 'Bool': BoolSelection,
                 'Data': DataSetSelection,
-                'Data2': OperateSelection}
+                'Data2': OperateSelection,
+                'String': StringSelection}
 
     def operation(self, DataOut, Meta):
         print('Waiting for ' + str(Meta['Length']) + ' seconds..')
@@ -33,6 +35,7 @@ class ds_user_script(UserOperation):
         print('Combo selection = ' + Meta['Combo'])
         print('Float selection = ' + str(Meta['Float']))
         print('Bool selection = ' + str(Meta['Bool']))
+        print('String selection = ' + str(Meta['String']))
 
         if(Meta['Combo'] == 'Option 1'):
             print('YOU SELECTED NUMBER ! DOOD')
