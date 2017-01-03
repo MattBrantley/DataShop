@@ -4,7 +4,7 @@ Takes a 2-dimensional matrix of size [m, n] and returns the standard deviation
 of the nubmers within the matrix.
 """
 
-from UserScript import UserOperation, ScriptIOData
+from UserScript import *
 import numpy as np
 
 class ds_user_script(UserOperation):
@@ -16,18 +16,21 @@ class ds_user_script(UserOperation):
     nDataSets = 1
     version = 0.1
 
-    def operation(self, DataOut, DataIn, Meta):
+    dataSet = DataSetSettingsObject(minimum=1, maximum=1, primaryEnabled=True)
+    dataSet.setDescription('A 2D input matrix')
+
+    settings = {'Input Matrix': dataSet}
+
+    def operation(self, DataOut, Meta):
         """The generic 'main' function of an operation type user script."""
-        # self.DataIn is a list of ScriptIOData types. We want the first (or
-        # slice [0]) of this list.
-        dataInputObject = DataIn[0]
-        # The first slice of this list contains a matrix attribute, that
-        # should be a numpy array.
-        dataInputArray = dataInputObject.matrix
-        if not isinstance(dataInputArray, np.ndarray):
+
+        dataInputMatrix = Meta['Input Matrix'][0].matrix
+
+        if not isinstance(dataInputMatrix, np.ndarray):
             raise TypeError('Is not an array!')
         else:
-            rows, cols = dataInputArray.shape
+            standardDeviation = np.std(dataInputMatrix)
             dataOutputObject = ScriptIOData()
-            dataOutputObject.matrix = dataInputArray.std()
+            dataOutputObject.matrix = standardDeviation
+            dataOutputObject.name = '{}'.format(round(standardDeviation, 4))
             DataOut.append(dataOutputObject)

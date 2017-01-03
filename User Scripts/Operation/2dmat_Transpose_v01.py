@@ -4,8 +4,6 @@ Takes a 2-dimensional matrix of size [m, n] and returns a transposed matrix of
 size [n, m].
 """
 
-# from UserScript import UserOperation, ScriptIOData
-# from UserScriptSettingsObjects import DataSetSettingsObject as DSSO
 from UserScript import *
 import numpy as np
 
@@ -29,7 +27,8 @@ class ds_user_script(UserOperation):
     def operation(self, DataOut, Meta):
         """The generic 'main' function of an operation type user script."""
 
-        dataInputObject = Meta['Input Matrix']
+        dataInputObject = Meta['Input Matrix'][0].matrix
+        dataNameObject = Meta['Input Matrix'][0].name
         # The first slice of this list contains a matrix attribute, that
         # should be a numpy array.
         if not isinstance(dataInputObject, np.ndarray):
@@ -38,4 +37,5 @@ class ds_user_script(UserOperation):
             transposedArray = np.transpose(dataInputObject)
             outputObject = ScriptIOData()
             outputObject.matrix = transposedArray
+            outputObject.name = 'Transposed_{}'.format(dataNameObject)
             DataOut.append(outputObject)

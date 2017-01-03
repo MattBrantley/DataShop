@@ -207,7 +207,7 @@ class DSWorkspace():
 
     def importData(self):
         #fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL, filter='*.csv')
-        fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL)
+        fname = QFileDialog.getOpenFileName(mW, 'Open File', self.workspaceURL)
         for fileURL in fname[0]:
             fileName, fileExtension = os.path.splitext(fileURL)
             print(fileName)
