@@ -15,9 +15,27 @@ from UserScript import *
 
 class WorkspaceTree(QTreeWidget):
 
-    def __init__(self):
+    def __init__(self, workspace):
         super().__init__()
+        self.workspace = workspace
         self.setDragEnabled(True)
+
+    def dragEnterEvent(self, event):
+        if(event.mimeData().hasUrls()):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if(event.mimeData().hasUrls()):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if(url.isValid):
+                self.workspace.importDataByURL(url.toLocalFile())
 
 class settingsDefaultImporterListWidget(QWidget):
     def __init__(self, ext, importers, defImporter):
@@ -126,7 +144,7 @@ class DSWorkspace():
         return data
 
     def initTree(self):
-        self.treeWidget = WorkspaceTree()
+        self.treeWidget = WorkspaceTree(self)
         self.treeWidget.setHeaderHidden(True)
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.openMenu)
@@ -301,6 +319,10 @@ class DSWorkspace():
         for fileURL in fname[0]:
             fileName, fileExtension = os.path.splitext(fileURL)
             self.userScripts.runDefaultImporter(fileURL, fileExtension)
+
+    def importDataByURL(self, fileURL):
+        fileName, fileExtension = os.path.splitext(fileURL)
+        self.userScripts.runDefaultImporter(fileURL, fileExtension)
 
     def addImportResults(self, dataSet):
         data = {'GUID': self.saveDSToSql(dataSet.name, dataSet.matrix), 'Type': 'Data', 'Name': dataSet.name}
@@ -533,6 +555,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
             self.importMenu.setEnabled(False)
+            self.treeHolder.treeWidget.setAcceptDrops(False)
         elif(state == self.MW_STATE_WORKSPACE_LOADED):
             self.exitAction.setEnabled(True)
             self.newAction.setEnabled(True)
@@ -541,6 +564,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(True)
             self.importMenu.setEnabled(True)
+            self.treeHolder.treeWidget.setAcceptDrops(True)
         else:
             self.exitAction.setEnabled(False)
             self.newAction.setEnabled(False)
@@ -549,6 +573,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
             self.importMenu.setEnabled(False)
+            self.treeHolder.treeWidget.setAcceptDrops(False)
 
     def initActions(self):
         self.exitAction = QAction(QIcon('icons2\minimize.png'), 'Exit', self)
