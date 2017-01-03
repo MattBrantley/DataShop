@@ -515,7 +515,6 @@ class mainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
         self.treeHolder = DSWorkspace(self)

@@ -15,6 +15,7 @@ class ds_user_script(UserOperation):
     FloatSelection = FloatSettingsObject(maximum=7.2, default=-1.2)
     BoolSelection = BoolSettingsObject(default=True)
     StringSelection = StringSettingsObject(default='A String!')
+    FileSelection = FileSelectionSettingsObject(filter='*.poo;;*.csv')
 
     DataSetSelection = DataSetSettingsObject(minimum=3, maximum=4)
     PrimarySelection = DataSetSettingsObject(maximum=4, primaryEnabled=True)
@@ -27,7 +28,8 @@ class ds_user_script(UserOperation):
                 'Bool': BoolSelection,
                 'Data': DataSetSelection,
                 'Data2': PrimarySelection,
-                'String': StringSelection}
+                'String': StringSelection,
+                'File': FileSelection}
 
     def operation(self, DataOut, Meta):
         print('Waiting for ' + str(Meta['Length']) + ' seconds..')
@@ -37,6 +39,7 @@ class ds_user_script(UserOperation):
         print('Bool selection = ' + str(Meta['Bool']))
         print('String selection = ' + str(Meta['String']))
         print('Primary selection name = ' + Meta['Data2'][0].name)
+        print('File dialog URL = ' + Meta['File'])
 
         if(Meta['Combo'] == 'Option 1'):
             print('YOU SELECTED NUMBER ! DOOD')
