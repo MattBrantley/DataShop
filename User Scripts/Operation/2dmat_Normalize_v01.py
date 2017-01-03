@@ -15,9 +15,12 @@ class ds_user_script(UserOperation):
     tooltip = 'Normalizes a 2D matrix'
     nDimension = 2
     nDataSets = 1
-    version = 0.1
+    version = 0.3
 
+    dataSet = DataSetSettingsObject(minimum=1, maximum=1, primaryEnabled=True)
+    dataSet.setDescription('A 2D input matrix')
 
+    settings = {'Input Matrix': dataSet}
 
     def operation(self, DataOut, Meta):
         """The generic 'main' function of an operation type user script."""

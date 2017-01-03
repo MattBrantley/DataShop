@@ -14,7 +14,7 @@ class ds_user_script(UserOperation):
     tooltip = 'Transposes a 2D matrix'
     nDimension = 2
     nDataSets = 1
-    version = 0.1
+    version = 0.3
 
     # Defines the input data parameter (the right clicked object here)
     DataSet = DataSetSettingsObject(minimum=1, maximum=1, primaryEnabled=True)

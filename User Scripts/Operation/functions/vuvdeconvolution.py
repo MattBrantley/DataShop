@@ -3,7 +3,10 @@
 Deconvolution functions for working with Vacuum Ultraviolet Data.
 """
 import numpy as np
+import json
 from scipy import optimize
+import scipy.interpolate
+from PyQt5.QtWidgets import QFileDialog
 
 def simplisma(vuvMat, nComps=2, offset=0.02):
     """
@@ -99,7 +102,7 @@ def mcr(vuvMat, numComps=2, noise=0.01):
     for i in range(numComps):
         λ = compSpec.conj()[i]
         startSpecMat[i] = λ / np.sqrt(sum(λ*λ))
-    startSpec = startSpecMat
+    startSpec = startSpecMat.T
     return startSpec
 
 
@@ -120,7 +123,7 @@ def cls(vuvArray, startCond):
     vaRow, vaCol = vuvArray.shape
     scRow, scCol = startCond.shape
     if scRow > scCol:
-        startCond.T
+        startCond = startCond.T
         scRow, scCol = startCond.shape
     if scCol != vaRow:
         vuvArray = vuvArray.T
@@ -148,7 +151,7 @@ def cls(vuvArray, startCond):
     return results
 
 
-def als(vuvArray, startCond, numIter=100, convSigma=0.02):
+def als(vuvArray, startCond, Meta=None, numIter=100, convSigma=0.02):
     """
     The alternating least squares method iterates, given starting conditions,
     to attempt to converge on a solution. Performance and results depend
@@ -198,6 +201,8 @@ def als(vuvArray, startCond, numIter=100, convSigma=0.02):
     divCount = 0
     # Main iteration loop
     for iterCount in range(numIter):
+        # Meta['Progress'] doesn't seem to update the progress bar...
+        Meta['Progress'] = iterCount / numIter
         # Estimate concentrations of the ALS solutions.
         conc = np.linalg.lstsq(absorb.T, pcaMat.T)[0].T
         # Non-negativity constraints
@@ -205,7 +210,7 @@ def als(vuvArray, startCond, numIter=100, convSigma=0.02):
         for i in range(vaRow):
             tmp1 = absorb @ absorb.conj().T
             tmp2 = absorb @ vuvArray[i, :].conj().T
-            nnls = optimize.nnls(tmp1, tmp2)
+            nnls = optimize.nnls(tmp1, tmp2)[0]
             conc2[i, :] = nnls.conj().T
         conc = conc2
         absorb = np.linalg.lstsq(conc, vuvArray)[0]
@@ -238,3 +243,57 @@ def als(vuvArray, startCond, numIter=100, convSigma=0.02):
             return sopt.conj(), copt.T
     # print('Iterations exceeded allowed.')
     return sopt.conj(), copt.T
+
+
+def getlibrary():
+    # This doesn't seem to be working. Hmmm...
+    libPath = QFileDialog.getOpenFileName(caption='Open File', filter='*.json')
+    with open('{}'.format(libPath)) as libObject:
+        library = json.load(libObject)
+    return(library)
+
+
+def r2calc(yMeas, yRef):
+    """Calculates the R-squared value for two vectors"""
+    # =========================================================================
+    # If the number of y points in the measured and reference vectors are not
+    # equivalent, iterpolates the measured vector to have the same number of
+    # data points as the reference spectra.
+    # =========================================================================
+    if len(yMeas) != len(yRef):
+        interpolate = scipy.interpolate.interp1d
+        yMeas = interpolate(np.arange(len(yMeas)), yMeas, kind='linear',
+                            fill_value='extrapolate')(np.arange(len(yRef)))
+    # =========================================================================
+    # Produces a correlation coefficient matrix of the y values.
+    # =========================================================================
+    rMatrix = np.corrcoef(yMeas, yRef)
+    r2 = rMatrix[0][1] ** 2
+    return r2
+
+
+def searchspectra(vSpecY, library, returnList=True):
+    results = []
+    for name in library:
+        spectra = library[name]['VUV Data']
+        # xVals = spectra[0]
+        yVals = spectra[1]
+        r2 = r2calc(vSpecY, yVals)
+        results.append((name, r2))
+    results.sort(key=lambda x: x[1], reverse=True)
+    print(results[0])
+    if returnList:
+        return results
+    else:
+        topResult = results[0][0]
+        topResultR2 = results[0][1]
+        topResultData = library[topResult]['VUV Data']
+        return topResult, topResultR2, topResultData
+
+def interpolatespectra(xBad, yBad, xGood):
+    if (len(xBad) != len(yBad)):
+        raise ValueError('Data does not align!')
+    elif len(yBad) != len(yGood):
+        yBad = interpolate(xBad, yBad, kind='linear',
+                           fill_value='extrapolate')(xGood)
+        return yBad

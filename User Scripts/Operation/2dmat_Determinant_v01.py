@@ -14,7 +14,7 @@ class ds_user_script(UserOperation):
     tooltip = 'Computes the determinant of a square matrix'
     nDimension = 2
     nDataSets = 1
-    version = 0.1
+    version = 0.3
 
     DataSet = DataSetSettingsObject(minimum=1, maximum=1, primaryEnabled=True)
     DataSet.setDescription('An input Matrix of size [m, n]')

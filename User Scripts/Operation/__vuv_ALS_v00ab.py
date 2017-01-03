@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 """
 Takes two 2-dimensional matrices of size [m, n] (data) and [i, m] (i amount of
 starting components of 1D arrays m). Returns the classical least squares
