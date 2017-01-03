@@ -17,7 +17,7 @@ class scriptProcessManager():
         self.initTimer()
         self.initProcessWidget()
 
-        print('Building I/O Managers')
+        print('Building I/O Managers... ', end="", flush=True)
         for i in range (0, self.numWorkers):
             self.managers.append(procCommManager())
             self.managers[i].clear()
@@ -154,6 +154,64 @@ class userScriptsController():
         self.scripts['Import'] = self.getUserScriptsByType(UserImport)
         self.scripts['Interact'] = self.getUserScriptsByType(UserInteract)
         self.scripts['Operation'] = self.getUserScriptsByType(UserOperation)
+
+        self.parseImportScripts()
+
+    def getImporterByName(self, ext):
+        ext = ext.upper()
+        if ext in self.parent.settings['Default Importers']:
+            defImporterName = self.parent.settings['Default Importers'][ext]
+            for importer in self.registeredImportersList[ext]:
+                if(importer.name == defImporterName):
+                    return importer
+            return None
+        else:
+            return None
+
+    def runDefaultImporter(self, URL, ext):
+        defImporter = self.getImporterByName(ext)
+        if(defImporter is not None):
+            print('Importing (' + URL +') using [' + defImporter.name + ']...')
+            dataIn = defImporter.import_func(URL)
+            fileName = os.path.basename(URL)
+            self.parent.addImportResults(dataIn, fileName)
+        else:
+            print('No import function for extension: ' + ext)
+
+    def genImportDialogFilter(self):
+        # outputList = []
+        # for key, val in self.registeredImportersList.items():
+        #     outputList.append('*'+key)
+        outputList = ''
+        for key, val in sorted(self.registeredImportersList.items()):
+            outputList = outputList + '*' + key.lower() + ';;'
+        #return outputList[:-2]
+        return outputList
+
+    def parseImportScripts(self):
+        self.registeredImportersList = {}
+        for script in self.scripts['Import']:
+            for key, ext in script.registeredFiletypes.items():
+                ext = ext.upper()
+                if ext in self.registeredImportersList:
+                    self.registeredImportersList[ext].append(script)
+                else:
+                    self.registeredImportersList[ext] = [script]
+
+        for ext in self.registeredImportersList:
+            if ext in self.parent.settings['Default Importers']:
+                stillExists = False
+                for importer in self.registeredImportersList[ext]:
+                    if(importer.name == self.parent.settings['Default Importers'][ext]):
+                        stillExists = True
+
+                if(stillExists == False):
+                    print('Default Importer for ' + ext + ' no longer exists.')
+                    self.parent.settings['Default Importers'][ext] = self.registeredImportersList[ext][0].name
+            else:
+                self.parent.settings['Default Importers'][ext] = self.registeredImportersList[ext][0].name
+
+        self.parent.updateSettings()
 
     def loadUserScriptFromFile(self, filepath, scriptType):
         class_inst = None

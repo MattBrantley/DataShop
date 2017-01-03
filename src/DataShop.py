@@ -1,4 +1,4 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue, json
 from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -22,6 +22,7 @@ class WorkspaceTree(QTreeWidget):
 class DSWorkspace():
     workspaceURL = ''
     directoryURL = os.path.dirname(os.path.realpath(__file__))
+    settingsURL = 'settings.json'
     userScripts = None
     ITEM_GUID = Qt.UserRole
     ITEM_TYPE = Qt.UserRole+1
@@ -30,7 +31,37 @@ class DSWorkspace():
     def __init__(self, mainWindow):
         super().__init__()
         self.mainWindow = mainWindow
+        self.readSettings()
         self.initTree()
+
+    def readSettings(self):
+        print('Loading Settings... ', end="", flush=True)
+        if(os.path.isfile(self.settingsURL)):
+            with open(self.settingsURL, 'r+') as inFile:
+                try:
+                    self.settings = json.load(inFile)
+                    inFile.close()
+                    #print(self.settings)
+                    print('Done!')
+                except ValueError:
+                    print('Settings File is Corrupt!!! Making New One..')
+                    inFile.close()
+                    self.settings = self.generateDefaultSettingsFile()
+                    self.updateSettings()
+        else:
+            print('Settings File Not Found! Making New One..')
+            self.settings = self.generateDefaultSettingsFile()
+            self.updateSettings()
+
+    def updateSettings(self):
+        print('Updating Settings File... ', end="", flush=True)
+        with open(self.settingsURL, 'w') as file:
+            json.dump(self.settings, file)
+        print('Done!')
+
+    def generateDefaultSettingsFile(self):
+        data = {'Default Importers': {}}
+        return data
 
     def initTree(self):
         self.treeWidget = WorkspaceTree()
@@ -203,25 +234,18 @@ class DSWorkspace():
         str = str.replace(" ", "_")
         return str
 
-    #def importDialog(self):
-
     def importData(self):
-        #fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL, filter='*.csv')
-        fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL)
+        filter = self.userScripts.genImportDialogFilter()
+        fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL, filter=self.userScripts.genImportDialogFilter())
         for fileURL in fname[0]:
             fileName, fileExtension = os.path.splitext(fileURL)
-            print(fileName)
-            print(fileExtension)
-            print(fileURL)
-        if fname[0]:
-            try:
-                data = np.genfromtxt(fname[0], delimiter=',')
-                name = self.cleanStringName(os.path.basename(fname[0]))
-                data = {'GUID': self.saveDSToSql(name, data), 'Type': 'Data', 'Name': name}
-                self.addItem(self.root, data)
-                self.saveWSToSql()
-            except ValueError:
-                print('Import Error, .csv might be corrupted.')
+            self.userScripts.runDefaultImporter(fileURL, fileExtension)
+
+    def addImportResults(self, dataRaw, name):
+        name = self.cleanStringName(name)
+        data = {'GUID': self.saveDSToSql(name, dataRaw), 'Type': 'Data', 'Name': name}
+        self.addItem(self.root, data)
+        self.saveWSToSql()
 
     def getItemData(self, selectedItem):
         GUID = selectedItem.data(0, self.ITEM_GUID)
@@ -240,7 +264,6 @@ class DSWorkspace():
         return data
 
     def loadNameByGUID(self, GUID):
-        print('Loading GUID')
         iterator = QTreeWidgetItemIterator(self.treeWidget)
         while iterator.value():
             item = iterator.value()
@@ -354,6 +377,7 @@ class DSWorkspace():
         text, ok = QInputDialog.getText(mW, 'Rename Item', 'Enter New Name', text=selectedItem.text(0))
         if(ok):
             selectedItem.setText(0, self.cleanStringName(text))
+            selectedItem.setData(0, self.ITEM_NAME, text)
             self.renameDSFromSql(selectedItem)
             self.saveWSToSql()
 
@@ -507,9 +531,35 @@ class mainWindow(QMainWindow):
         self.workspace.setWidget(self.treeHolder.getTreeWidget())
         self.addDockWidget(Qt.LeftDockWidgetArea, self.workspace)
 
+        self.initSettingsWidget()
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.settingsDockWidget)
+
         self.setGeometry(300, 300, 640, 480)
         self.setWindowTitle('DataShop (Alpha)')
         self.show()
+
+    def initSettingsWidget(self):
+        self.settingsContainer = QWidget()
+        self.settingsLayout = QVBoxLayout()
+        self.settingsWidget = QTabWidget()
+        self.settingsApplyWidget = QPushButton('Apply')
+
+        self.settingsLayout.addWidget(self.settingsWidget)
+        self.settingsLayout.addWidget(self.settingsApplyWidget)
+        self.settingsLayout.setSpacing(0)
+
+        self.settingsDockWidget = QDockWidget("Settings", self)
+        self.settingsDockWidget.setFloating(True)
+        self.settingsDockWidget.hide()
+
+        self.settingsContainer.setLayout(self.settingsLayout)
+        self.settingsDockWidget.setWidget(self.settingsContainer)
+
+        self.settingsGeneral = QWidget()
+        self.settingsDefaultImporters = QWidget()
+
+        self.settingsWidget.addTab(self.settingsGeneral, 'General')
+        self.settingsWidget.addTab(self.settingsDefaultImporters, 'Importers')
 
     def initMenu(self):
         self.menubar = self.menuBar()

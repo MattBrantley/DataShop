@@ -41,6 +41,7 @@ class UserGenerator(UserScript):
 
 class UserImport(UserScript):
     type = 'Import'
+    registeredFiletypes = {}
 
 class UserInteract(UserScript):
     type = 'Interact'

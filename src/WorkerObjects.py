@@ -167,7 +167,6 @@ class workerObj():
                     tDataObj = ScriptIOData()
                     dataIn = self.workspace.loadDataByGUID(GUID)
                     nameIn = self.workspace.loadNameByGUID(GUID)
-                    print('here')
                     tDataObj.matrix = dataIn
                     tDataObj.name = nameIn
                     DataObjList.append(tDataObj)
