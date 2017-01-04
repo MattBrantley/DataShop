@@ -3,6 +3,7 @@ from UserScript import *
 class SettingsObject():
     type = 'Setting'
     primaryEnabled = False
+    tiedToBoolWidget = None
 
     def drawWidget(self):
         self.widgetReturnVal = QWidget()
@@ -13,6 +14,14 @@ class SettingsObject():
 
     def setDescription(self, string):
         print('This setting object does not support tool tips.')
+
+    def setEnabled(self, val):
+        print('This does nothing')
+
+    def tieToWidget(self, widget):
+        if(type(widget) == BoolSettingsObject):
+            self.tiedToWidget = widget
+            widget.tiedWidgetsList.append(self)
 
 class RingSettingsObject(SettingsObject):
     type = 'Ring Settings Object'
@@ -140,6 +149,7 @@ class FloatSettingsObject(SettingsObject):
 
 class BoolSettingsObject(SettingsObject):
     type = 'Boolean Settings Object'
+    tiedWidgetsList = []
 
     def __init__(self, **kwargs):
         self.default = kwargs.get('default', False)
@@ -158,7 +168,12 @@ class BoolSettingsObject(SettingsObject):
         self.widget = QCheckBox()
         self.widget.setChecked(self.default)
         self.widget.setWhatsThis(self.renderToolTipString())
+        self.widget.stateChanged.connect(self.updateTiedWidgets)
         return self.widget
+
+    def updateTiedWidgets(self):
+        for widget in self.tiedWidgetsList:
+            widget.setEnabled(self.widget.isChecked())
 
     def getUserSetting(self):
         return self.widget.isChecked()
