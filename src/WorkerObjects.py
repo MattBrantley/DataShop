@@ -165,10 +165,11 @@ class workerObj():
                 GUIDList = setting.getUserSetting()
                 for GUID in GUIDList:
                     tDataObj = ScriptIOData()
-                    dataIn = self.workspace.loadDataByGUID(GUID)
-                    nameIn = self.workspace.loadNameByGUID(GUID)
-                    tDataObj.matrix = dataIn
-                    tDataObj.name = nameIn
+                    tDataObj.matrix = self.workspace.loadDataByGUID(GUID)
+                    tDataObj.name = self.workspace.loadNameByGUID(GUID)
+                    tDataObj.axes = self.workspace.getaxesByGUID(GUID)
+                    if(tDataObj.verify() == False):
+                        print('Oh that data looks off....')
                     DataObjList.append(tDataObj)
                 self.meta[key] = DataObjList
             else:

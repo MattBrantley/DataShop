@@ -187,6 +187,79 @@ class StringSettingsObject(SettingsObject):
     def getUserSetting(self):
         return str(self.widget.text())
 
+class FileSelectionSettingsObject(SettingsObject):
+    type = 'File Selection Settings Object'
+    defaultString = 'Select a file or drag one in..'
+
+    def __init__(self, **kwargs):
+        self.filter = kwargs.get('filter', '*')
+        self.description = kwargs.get('description', 'N/A')
+
+    def setFilter(self, string):
+        self.filter = string
+
+    def setDescription(self, string):
+        self.description = string
+
+    def renderToolTipString(self):
+        return 'Description: ' + self.description + '\nFilter: ' + str(self.filter)
+
+    def drawWidget(self):
+        self.widget = QWidget()
+        self.layout = QHBoxLayout()
+        self.layout.setSpacing(2)
+        self.layout.setContentsMargins(0,0,0,0)
+        self.widget.setWhatsThis(self.renderToolTipString())
+
+        self.button = QPushButton('File..')
+        self.button.setIcon(QIcon('icons\\folder.png'))
+        self.text = FileURLSettingWidget(self.defaultString)
+
+        self.layout.addWidget(self.text)
+        self.layout.addWidget(self.button)
+        self.widget.setLayout(self.layout)
+        self.button.clicked.connect(self.fileDialog)
+
+        return self.widget
+
+    def fileDialog(self):
+        file = QFileDialog.getOpenFileName(self.widget, 'Open File', '', filter=self.filter)
+        if(file[0] is not ''):
+            self.text.setText(file[0])
+
+    def verify(self):
+        if(str(self.text.text()) == self.defaultString):
+            return False
+        else:
+            return True
+
+    def getUserSetting(self):
+        return self.text.text()
+
+class FileURLSettingWidget(QLineEdit):
+
+    def __init__(self, string):
+        super().__init__(string)
+        self.setAcceptDrops(True)
+        self.setReadOnly(True)
+
+    def dragEnterEvent(self, event):
+        if(event.mimeData().hasUrls()):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if(event.mimeData().hasUrls()):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if(url.isValid):
+                self.setText(url.toLocalFile())
+
 class DataSetSettingsObject(SettingsObject):
     type = 'DataSet Settings Object'
 

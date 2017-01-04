@@ -12,12 +12,37 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from UserScriptsController import *
 from UserScript import *
+from DataViewer import *
 
 class WorkspaceTree(QTreeWidget):
+    ITEM_TYPE = Qt.UserRole+1
 
-    def __init__(self):
+    def __init__(self, workspace):
         super().__init__()
+        self.workspace = workspace
         self.setDragEnabled(True)
+        self.itemSelectionChanged.connect(self.selectionChangedFunc)
+
+    def selectionChangedFunc(self):
+        if(self.selectedItems()[0].data(0, self.ITEM_TYPE) == 'Data'):
+            self.workspace.inspectorWidgetController.drawInspectorWidget(self.selectedItems()[0])
+
+    def dragEnterEvent(self, event):
+        if(event.mimeData().hasUrls()):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if(event.mimeData().hasUrls()):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            if(url.isValid):
+                self.workspace.importDataByURL(url.toLocalFile())
 
 class settingsDefaultImporterListWidget(QWidget):
     def __init__(self, ext, importers, defImporter):
@@ -74,6 +99,37 @@ class settingsWidgetController():
             #print(self.workspace.settings['Default Importers'])
             self.workspace.settings['Default Importers'][defaultItem.ext.upper()] = defaultItem.getNameOfSelected()
 
+class inspectorWidgetController():
+    ITEM_GUID = Qt.UserRole
+    def __init__(self, workspace, inspectorWidget):
+        self.inspectorLayout = inspectorWidget
+        self.workspace = workspace
+
+    def drawInspectorWidget(self, selectedItem):
+
+        while self.inspectorLayout.count():
+            child = self.inspectorLayout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
+        #self.inspectorLayout.clear()
+        GUID = selectedItem.data(0, self.ITEM_GUID)
+        matrix = self.workspace.loadDataByGUID(GUID)
+        name = self.workspace.loadNameByGUID(GUID)
+        axes = self.workspace.getaxesByGUID(GUID)
+
+        self.inspectorLayout.addWidget(QLabel('Name: ' + name))
+        self.inspectorLayout.addWidget(QLabel('Shape: ' + str(matrix.shape)))
+
+        idx = 0
+        for axis in axes:
+            self.inspectorLayout.addWidget(QLabel('Axis #' + str(idx)))
+            self.inspectorLayout.addWidget(QLabel('    Name: ' + axis.name))
+            self.inspectorLayout.addWidget(QLabel('    Units: ' + axis.units))
+            self.inspectorLayout.addWidget(QLabel('    Shape: ' + str(axis.vector.shape)))
+            idx += 1
+
+
 class DSWorkspace():
     workspaceURL = ''
     directoryURL = os.path.dirname(os.path.realpath(__file__))
@@ -82,6 +138,9 @@ class DSWorkspace():
     ITEM_GUID = Qt.UserRole
     ITEM_TYPE = Qt.UserRole+1
     ITEM_NAME = Qt.UserRole+2
+    ITEM_UNITS = Qt.UserRole+3
+
+    DataViewerWindows = []
 
     def __init__(self, mainWindow):
         super().__init__()
@@ -89,8 +148,14 @@ class DSWorkspace():
         self.readSettings()
         self.initTree()
 
+        #self.dataWindow = DataViewerWindow()
+
     def initSettingsTabs(self, settingsWidget):
         self.settingsWidgetController = settingsWidgetController(self, settingsWidget)
+
+    def initInspectorWidget(self, inspectorWidget):
+        print('Init')
+        self.inspectorWidgetController = inspectorWidgetController(self, inspectorWidget)
 
     def applySettingsButton(self):
         self.settingsWidgetController.getNewSettings()
@@ -126,7 +191,7 @@ class DSWorkspace():
         return data
 
     def initTree(self):
-        self.treeWidget = WorkspaceTree()
+        self.treeWidget = WorkspaceTree(self)
         self.treeWidget.setHeaderHidden(True)
         self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
         self.treeWidget.customContextMenuRequested.connect(self.openMenu)
@@ -179,6 +244,7 @@ class DSWorkspace():
             workingInd[level].set('Name', item.data(0, self.ITEM_NAME))
             workingInd[level].set('GUID', item.data(0, self.ITEM_GUID))
             workingInd[level].set('Type', item.data(0, self.ITEM_TYPE))
+            workingInd[level].set('Units', item.data(0, self.ITEM_UNITS))
             workingInd[level].text = "\n"
             workingInd[level].tail = "\n"
             iterator+=1
@@ -225,17 +291,33 @@ class DSWorkspace():
         conn.commit()
         conn.close()
 
-    def saveDSToSql(self, name, data):
+    def saveDSToSql(self, name, data, dataType, units):
         GUID = str(uuid.uuid4().hex)
         GUID = GUID.upper()
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS DataSets (Key INTEGER PRIMARY KEY ASC, Name TEXT NOT NULL, Data Blob, GUID TEXT, timeStamp date);')
-        c.execute("INSERT INTO DataSets (Key, Name, Data, GUID, timeStamp) VALUES (NULL, ?, ?, ?, CURRENT_TIMESTAMP);", (name, data.dumps(), GUID)) #memoryview()
-        #print(c.lastrowid)
+        c.execute('CREATE TABLE IF NOT EXISTS DataSets (Key INTEGER PRIMARY KEY ASC, Name TEXT NOT NULL, Data Blob, Type TEXT, Units TEXT, GUID TEXT, timeStamp date);')
+        c.execute("INSERT INTO DataSets (Key, Name, Data, GUID, Type, Units, timeStamp) VALUES (NULL, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);", (name, data.dumps(), GUID, dataType, units))
         conn.commit()
         conn.close()
         return GUID
+
+    def submitResultsToWorkspace(self, Op, dataSet):
+        axisList = []
+        for axis in dataSet.axes:
+            axisData = {'GUID': self.saveDSToSql(axis.name, axis.vector, 'Axis', axis.units), 'Type': 'Axis', 'Name': axis.name, 'Units': axis.units}
+            axisList.append(axisData)
+
+        data = {'GUID': self.saveDSToSql(self.cleanStringName(dataSet.name), dataSet.matrix, 'Matrix', 'Arb'), 'Type': 'Data', 'Name': self.cleanStringName(dataSet.name), 'Units': 'Arb'}
+        if(Op is not None):
+            parent = self.addItem(Op, data)
+        else:
+            parent = self.addItem(self.root, data)
+
+        for axisDataItem in axisList:
+            self.addItem(parent, axisDataItem)
+
+        self.saveWSToSql()
 
     def deleteDSFromSql(self, selectedItem):
         conn = sqlite3.connect(self.workspaceURL)
@@ -281,6 +363,7 @@ class DSWorkspace():
         item.setData(0, self.ITEM_NAME, data['Name'])
         item.setData(0, self.ITEM_GUID, data['GUID'])
         item.setData(0, self.ITEM_TYPE, data['Type'])
+        item.setData(0, self.ITEM_UNITS, data['Units'])
         if(data['Type'] == 'Data'):
             item.setIcon(0, QIcon('icons4\database-1.png'))
         if(data['Type'] == 'Operation'):
@@ -288,6 +371,8 @@ class DSWorkspace():
             font = item.font(0)
             font.setBold(True)
             item.setFont(0, font)
+        if(data['Type'] == 'Axis'):
+            item.setHidden(True)
         #item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
 
         return item
@@ -302,10 +387,9 @@ class DSWorkspace():
             fileName, fileExtension = os.path.splitext(fileURL)
             self.userScripts.runDefaultImporter(fileURL, fileExtension)
 
-    def addImportResults(self, dataSet):
-        data = {'GUID': self.saveDSToSql(dataSet.name, dataSet.matrix), 'Type': 'Data', 'Name': dataSet.name}
-        self.addItem(self.root, data)
-        self.saveWSToSql()
+    def importDataByURL(self, fileURL):
+        fileName, fileExtension = os.path.splitext(fileURL)
+        self.userScripts.runDefaultImporter(fileURL, fileExtension)
 
     def getItemData(self, selectedItem):
         GUID = selectedItem.data(0, self.ITEM_GUID)
@@ -330,6 +414,27 @@ class DSWorkspace():
             if(item.data(0, self.ITEM_GUID) == GUID):
                 return item.data(0, self.ITEM_NAME)
             iterator += 1
+        return 'ERROR!'
+
+    def getaxesByGUID(self, GUID):
+        iterator = QTreeWidgetItemIterator(self.treeWidget)
+
+        while iterator.value():
+            item = iterator.value()
+            if(item.data(0, self.ITEM_GUID) == GUID):
+                axisList = []
+                for idx in range(item.childCount()):
+                    child = item.child(idx)
+                    if(child.data(0, self.ITEM_TYPE) == 'Axis'):
+                        childAxis = ScriptIOAxis()
+                        childAxis.name = child.data(0, self.ITEM_NAME)
+                        childAxis.units = child.data(0, self.ITEM_UNITS)
+                        childGUID = child.data(0, self.ITEM_GUID)
+                        childAxis.vector = self.loadDataByGUID(childGUID)
+                        axisList.append(childAxis)
+                return axisList
+            iterator += 1
+        print('ERROR')
         return 'ERROR!'
 
     def surfacePlotItem(self, selectedItem):
@@ -442,13 +547,8 @@ class DSWorkspace():
             self.saveWSToSql()
 
     def submitOperation(self, script, selectedItem):
-        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name}
+        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name, 'Units': ''}
         return self.addItem(selectedItem, dataOp)
-
-    def submitResult(self, Op, dataSet):
-        dataRes = {'GUID': self.saveDSToSql('Result', dataSet.matrix), 'Type': 'Data', 'Name': self.cleanStringName(dataSet.name)}
-        self.addItem(Op, dataRes)
-        self.saveWSToSql()
 
     def initContextActions(self, selectedItem):
         self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', mW)
@@ -487,6 +587,7 @@ class DSWorkspace():
             self.contextMenu.addAction(self.surfacePlotAction)
             self.contextMenu.addSeparator()
             self.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW, selectedItem)
+            #self.userScripts.populateActionMenu(self.contextMenu.addMenu('Import'), UserImport, mW, selectedItem)
 
         #elif(itemType == 'Operation'):
 
@@ -515,7 +616,6 @@ class mainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
         self.treeHolder = DSWorkspace(self)
@@ -534,6 +634,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
             self.importMenu.setEnabled(False)
+            self.treeHolder.treeWidget.setAcceptDrops(False)
         elif(state == self.MW_STATE_WORKSPACE_LOADED):
             self.exitAction.setEnabled(True)
             self.newAction.setEnabled(True)
@@ -542,6 +643,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(True)
             self.importMenu.setEnabled(True)
+            self.treeHolder.treeWidget.setAcceptDrops(True)
         else:
             self.exitAction.setEnabled(False)
             self.newAction.setEnabled(False)
@@ -550,6 +652,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
             self.importMenu.setEnabled(False)
+            self.treeHolder.treeWidget.setAcceptDrops(False)
 
     def initActions(self):
         self.exitAction = QAction(QIcon('icons2\minimize.png'), 'Exit', self)
@@ -599,9 +702,12 @@ class mainWindow(QMainWindow):
 
         self.initSettingsWidget()
         self.addDockWidget(Qt.BottomDockWidgetArea, self.settingsDockWidget)
+        self.initInspectorWidget()
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.inspectorDockWidget)
         self.AnimatedDocks = True
+        self.setDockNestingEnabled(True)
 
-        self.setGeometry(300, 300, 640, 480)
+        self.setGeometry(300, 300, 1280, 720)
         self.setWindowTitle('DataShop (Alpha)')
         self.show()
 
@@ -624,6 +730,19 @@ class mainWindow(QMainWindow):
         self.settingsDockWidget.setWidget(self.settingsContainer)
 
         self.treeHolder.initSettingsTabs(self.settingsWidget)
+
+    def initInspectorWidget(self):
+        self.inspectorContainer = QWidget()
+        self.inspectorLayout = QVBoxLayout()
+
+        self.inspectorDockWidget = QDockWidget("Inspector", self)
+        self.inspectorDockWidget.setFloating(True)
+        self.inspectorDockWidget.hide()
+
+        self.inspectorContainer.setLayout(self.inspectorLayout)
+        self.inspectorDockWidget.setWidget(self.inspectorContainer)
+
+        self.treeHolder.initInspectorWidget(self.inspectorLayout)
 
     def populateViewWindowMenu(self):
         windows = self.findChildren(QDockWidget)
