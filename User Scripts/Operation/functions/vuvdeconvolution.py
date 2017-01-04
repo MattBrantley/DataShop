@@ -9,6 +9,8 @@ import scipy.interpolate
 from PyQt5.QtWidgets import QFileDialog
 import tkinter
 import tkinter.filedialog
+import sqlite3
+import struct
 
 def simplisma(vuvMat, nComps, offset):
     """
@@ -292,6 +294,7 @@ def searchspectra(vSpecX, vSpecY, library, returnList=True):
         topResultData = library[topResult]['VUV Data']
         return topResult, topResultR2, topResultData
 
+
 def interpolatespectra(xBad, yBad, xGood):
     if (len(xBad) != len(yBad)):
         raise ValueError('Data does not align!')
@@ -299,3 +302,55 @@ def interpolatespectra(xBad, yBad, xGood):
         yNew = scipy.interpolate.interp1d(xBad, yBad, kind='linear',
                                           fill_value='extrapolate')(xGood)
         return yNew
+
+
+def extractvuv(vuvFile, startWave=125, endWave=240, startTime=0, endTime=600):
+    '''
+    Connects to the provided VUV file (a .db, database file) via sqlite,
+    extracts the data, crops it, and returns three numpy arrays of the time
+    points, the wavelength points, and the data matrix that corresponds to the
+    time points and wavelength points. User will be prompted for other
+    parameters if they are not provided.
+    '''
+    conn = sqlite3.connect(vuvFile)
+    c = conn.cursor()
+    c.execute("SELECT * FROM {}".format('WL_Names'))
+    rawλs = c.fetchall()[0][0]
+    c.execute('SELECT {} FROM {}'.format('Time', 'Scan'))
+    rawTimes = c.fetchall()
+    c.execute("SELECT {} FROM {}".format('ABS', 'Scan'))
+    rawArray = c.fetchall()
+    conn.close()
+    print('324')
+    # =========================================================================
+    # Unpacks the raw data and interpolates any problematic (nan/inf) points.
+    # The '~' invertes the boolean matrix/mask.
+    # =========================================================================
+    unpackedTimes = np.array([time[0] for time in rawTimes])
+    unpackedλs = np.array([struct.unpack('>f', rawλs[num:num+4])[0]
+                          for num in range(0, len(rawλs), 4)])
+    unpackedArray = np.zeros([len(rawArray), len(unpackedλs)], dtype='>f')
+    for row, data in enumerate(rawArray):
+        points = [struct.unpack('>f', data[0][num:num+4])
+                  for num in range(0, len(data[0]), 4)]
+        unpackedArray[row] = np.array(points).T
+    mask = (np.isnan(unpackedArray) + np.isinf(unpackedArray))
+    unpackedArray[mask] = np.interp(np.flatnonzero(mask),
+                                    np.flatnonzero(~mask),
+                                    unpackedArray[~mask])
+    startλIndex = len(np.where(unpackedλs <= startWave)[0])
+    endλIndex = len(np.where(unpackedλs <= endWave)[0])
+    startTimeIndex = len(np.where(unpackedTimes <= startTime)[0])
+    endTimeIndex = len(np.where(unpackedTimes <= endTime)[0]) + 1
+    # =========================================================================
+    # The axis lists and main data array are cropped and returned.
+    # =========================================================================
+    print('wave = ', len(unpackedλs), 'times = ', len(unpackedTimes))
+    print(startλIndex, endλIndex, startTimeIndex, endTimeIndex)
+
+    λPts = np.array(unpackedλs[startλIndex:endλIndex])
+    timePts = unpackedTimes[startTimeIndex:endTimeIndex]
+    trimmedArray = unpackedArray[startTimeIndex:endTimeIndex].T
+    vuvArray = trimmedArray[startλIndex:endλIndex]
+    print(vuvArray.shape)
+    return timePts, λPts, vuvArray

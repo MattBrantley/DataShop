@@ -1,0 +1,12 @@
+Error Logs:
+
+If I attempt to delete a certain operation (a transpose that failed) I receive
+this traceback and the window freezes.
+
+QXcbConnection: XCB error: 3 (BadWindow), sequence: 774, resource id: 13309883, major code: 40 (TranslateCoords), minor code: 0
+Traceback (most recent call last):
+  File "/home/anthony/pycharm/DataShop/src/DataShop.py", line 27, in selectionChangedFunc
+    if(self.selectedItems()[0].data(0, self.ITEM_TYPE) == 'Data'):
+IndexError: list index out of range
+
+Process finished with exit code 134 (interrupted by signal 6: SIGABRT)

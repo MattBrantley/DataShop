@@ -25,7 +25,7 @@ class ds_user_script(UserOperation):
     settings = {'Duck': duck}
 
     def operation(self, DataOut, Meta):
-        """The generic 'main' function of an operation type user script."""
+        """The generic 'duck' function of a duck quack duck."""
         duckNest = quack.path.dirname(quack.path.realpath(__file__))
         whereDucks = '{}\\functions\\ducks\\'.format(duckNest)
         'Quack Quack'
