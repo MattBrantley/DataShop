@@ -240,7 +240,6 @@ class DSWorkspace():
         return data
 
     def loadNameByGUID(self, GUID):
-        print('Loading GUID')
         iterator = QTreeWidgetItemIterator(self.treeWidget)
         while iterator.value():
             item = iterator.value()

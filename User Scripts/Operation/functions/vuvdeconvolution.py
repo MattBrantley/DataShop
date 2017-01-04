@@ -7,8 +7,10 @@ import json
 from scipy import optimize
 import scipy.interpolate
 from PyQt5.QtWidgets import QFileDialog
+import tkinter
+import tkinter.filedialog
 
-def simplisma(vuvMat, nComps=2, offset=0.02):
+def simplisma(vuvMat, nComps, offset):
     """
     Takes the truncated data set, the offset (indicating the amount of allowed
     divergence -- smaller is better for higher quality data), and the number
@@ -57,7 +59,7 @@ def simplisma(vuvMat, nComps=2, offset=0.02):
     return startChrom, startSpec, compSpec, puritySpec
 
 
-def mcr(vuvMat, numComps=2, noise=0.01):
+def mcr(vuvMat, numComps, noise):
     '''Althernate method of purity spectra generation.'''
     # Calculates a large number of constants and a few dot products
     nRow, nCol = vuvMat.shape
@@ -80,7 +82,6 @@ def mcr(vuvMat, numComps=2, noise=0.01):
     # mixture!
     for i in range(1, numComps):
         for j in range(nCol):
-            # wmat(c, pureIndex, i, j)
             dm = np.zeros((i+1, i+1))
             dm[0][0] = c[j][j]
             for k in range(i):
@@ -139,7 +140,7 @@ def cls(vuvArray, startCond):
         c = (tmp @ startCond) @ vuvArray[:, i]
         concentration[i] = c
 
-    # Normalization of results, so that the height of the data = 1.
+    # Normalization of results, so that the height of the data is 1.
     compSums = np.sum(startCond, axis=1)
     rawResults = np.array(concentration).T
     processedResults = np.ones_like(rawResults)
@@ -151,7 +152,7 @@ def cls(vuvArray, startCond):
     return results
 
 
-def als(vuvArray, startCond, Meta=None, numIter=100, convSigma=0.02):
+def als(vuvArray, startCond, Meta=None, numIter=100, convSigma=0.00):
     """
     The alternating least squares method iterates, given starting conditions,
     to attempt to converge on a solution. Performance and results depend
@@ -196,13 +197,12 @@ def als(vuvArray, startCond, Meta=None, numIter=100, convSigma=0.02):
     # Matlab ALS calculates a few more numbers here, but I'm opting not to.
     # (They include a printout of the initial match/CPU time - unnecessary)
     sstn = np.sum(vuvArray * vuvArray)
-    sst = np.sum(pcaMat * pcaMat)
     sigma2 = np.sqrt(sstn)
     divCount = 0
     # Main iteration loop
     for iterCount in range(numIter):
-        # Meta['Progress'] doesn't seem to update the progress bar...
-        Meta['Progress'] = iterCount / numIter
+        if Meta:
+            Meta['Progress'] = iterCount / numIter * 100
         # Estimate concentrations of the ALS solutions.
         conc = np.linalg.lstsq(absorb.T, pcaMat.T)[0].T
         # Non-negativity constraints
@@ -246,14 +246,16 @@ def als(vuvArray, startCond, Meta=None, numIter=100, convSigma=0.02):
 
 
 def getlibrary():
-    # This doesn't seem to be working. Hmmm...
-    libPath = QFileDialog.getOpenFileName(caption='Open File', filter='*.json')
+    root = tkinter.Tk()
+    root.withdraw()
+    getfile = tkinter.filedialog.askopenfilename
+    libPath = getfile()
     with open('{}'.format(libPath)) as libObject:
         library = json.load(libObject)
     return(library)
 
 
-def r2calc(yMeas, yRef):
+def r2calc(xMeas, yMeas, xRef, yRef):
     """Calculates the R-squared value for two vectors"""
     # =========================================================================
     # If the number of y points in the measured and reference vectors are not
@@ -262,8 +264,8 @@ def r2calc(yMeas, yRef):
     # =========================================================================
     if len(yMeas) != len(yRef):
         interpolate = scipy.interpolate.interp1d
-        yMeas = interpolate(np.arange(len(yMeas)), yMeas, kind='linear',
-                            fill_value='extrapolate')(np.arange(len(yRef)))
+        yMeas = interpolate(xMeas, yMeas, kind='linear',
+                            fill_value='extrapolate')(xRef)
     # =========================================================================
     # Produces a correlation coefficient matrix of the y values.
     # =========================================================================
@@ -272,16 +274,16 @@ def r2calc(yMeas, yRef):
     return r2
 
 
-def searchspectra(vSpecY, library, returnList=True):
+def searchspectra(vSpecX, vSpecY, library, returnList=True):
     results = []
     for name in library:
         spectra = library[name]['VUV Data']
-        # xVals = spectra[0]
+        xVals = spectra[0]
         yVals = spectra[1]
-        r2 = r2calc(vSpecY, yVals)
+        r2 = r2calc(vSpecX, vSpecY, xVals, yVals)
         results.append((name, r2))
     results.sort(key=lambda x: x[1], reverse=True)
-    print(results[0])
+    print(results[0], len(results))
     if returnList:
         return results
     else:
@@ -293,7 +295,7 @@ def searchspectra(vSpecY, library, returnList=True):
 def interpolatespectra(xBad, yBad, xGood):
     if (len(xBad) != len(yBad)):
         raise ValueError('Data does not align!')
-    elif len(yBad) != len(yGood):
-        yBad = interpolate(xBad, yBad, kind='linear',
-                           fill_value='extrapolate')(xGood)
-        return yBad
+    elif len(xBad) != len(xGood):
+        yNew = scipy.interpolate.interp1d(xBad, yBad, kind='linear',
+                                          fill_value='extrapolate')(xGood)
+        return yNew
