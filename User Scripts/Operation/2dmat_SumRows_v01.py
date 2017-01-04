@@ -10,27 +10,28 @@ import numpy as np
 class ds_user_script(UserOperation):
     """Creates a user script of the operation type."""
 
-    name = 'Sum Rows'
-    tooltip = 'Sums the rows of a 2D matrix'
+    name = 'Sum Axis'
+    tooltip = 'Sums the axis of a 2D matrix'
     nDimension = 2
     nDataSets = 1
     version = 0.3
 
-    DataSet = DataSetSettingsObject(minimum=1, maximum=1, primaryEnabled=True)
-    DataSet.setDescription('An input matrix')
+    dataSet = DataSetSettingsObject(minimum=1, maximum=1, primaryEnabled=True)
+    sumAxis = IntegerSettingsObject(minimum=0, default=0)
+    dataSet.setDescription('An input matrix')
+    sumAxis.setDescription('The axis number to sum')
 
-    settings = {'Input Matrix': DataSet}
+    settings = {'Matrix': dataSet,
+                'Axis': sumAxis}
 
     def operation(self, DataOut, Meta):
         """The generic 'main' function of an operation type user script."""
-        dataInputMatrix = Meta['Input Matrix'][0].matrix
-        row, col = dataInputMatrix.shape
-        # The first slice of this list contains a matrix attribute, that
-        # should be a numpy array.
-        if not isinstance(dataInputMatrix, np.ndarray):
-            raise TypeError('Is not an array!')
-        else:
-            dataOutputObject = ScriptIOData()
-            dataOutputObject.matrix = np.sum(dataInputMatrix, axis=0)
-            dataOutputObject.name = 'Result x{}'.format(col)
-            DataOut.append(dataOutputObject)
+        dataSet = Meta['Matrix'][0].matrix
+        sumAxis = Meta['Axis']
+        dataOut = ScriptIOData()
+        axisOut = ScriptIOAxis()
+        for i, axis in enumerate(Meta[Matrix][0].axes):
+            if i != sumAxis:
+                axisOut.append(axis)
+        dataOut.matrix = np.sum(dataInputMatrix, axis=sumAxis)
+        DataOut.append(dataOut)

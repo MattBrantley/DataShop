@@ -247,14 +247,17 @@ def als(vuvArray, startCond, Meta=None, numIter=100, convSigma=0.00):
     return sopt.conj(), copt.T
 
 
-def getlibrary():
-    root = tkinter.Tk()
-    root.withdraw()
-    getfile = tkinter.filedialog.askopenfilename
-    libPath = getfile()
-    with open('{}'.format(libPath)) as libObject:
-        library = json.load(libObject)
-    return(library)
+def getlibrary(libPath):
+    # root = tkinter.Tk()
+    # root.withdraw()
+    # getfile = tkinter.filedialog.askopenfilename
+    # libPath = getfile()
+    try:
+        with open('{}'.format(libPath)) as libObject:
+            library = json.load(libObject)
+        return(library)
+    except:
+        raise ValueError('Unable to read library')
 
 
 def r2calc(xMeas, yMeas, xRef, yRef):
