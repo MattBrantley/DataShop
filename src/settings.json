@@ -1,1 +1,1 @@
-{"Default Importers": {".CSV": "CSV Importer Type2", ".SOMETHINGELSE": "CSV Importer Type1", ".THING": "CSV Importer Type2"}}
+{"Default Importers": {".THING": "CSV Importer Fails", ".SOMETHINGELSE": "CSV Importer 2D", ".CSV": "CSV Importer 2D"}}

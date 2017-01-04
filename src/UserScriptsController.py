@@ -126,9 +126,14 @@ class scriptProcessManager():
     def completeJob(self, worker):
         Op = self.workspace.submitOperation(worker.uScript, worker.selectedItem)
         dataOut = worker.dOut
+        idx = 0
         for dataSet in dataOut:
-            dataSet.name = self.workspace.cleanStringName(dataSet.name)
-            self.workspace.submitResult(Op, dataSet)
+            if(dataSet.verify()):
+                dataSet.name = self.workspace.cleanStringName(dataSet.name)
+                self.workspace.submitResultsToWorkspace(Op, dataSet)
+            else:
+                print('DataSet[' + str(idx) + '] is corrupted: Aborting Import.')
+            idx += 1
 
         worker.removeJobWidget(self.processList)
         worker.releaseMgr()
@@ -186,13 +191,20 @@ class userScriptsController():
         print('Importing (' + URL +') using [' + importer.name + ']...')
         fileName = os.path.basename(URL)
         DataOut = []
-        result = importer.import_func(DataOut, URL, fileName)
+        try:
+            result = importer.import_func(DataOut, URL, fileName)
+        except:
+            print('Exception raised when importing using ' + importer.name + '. Aborting import.')
+            result = False
         if(result):
             for DataSet in DataOut:
-                if(DataSet.name == ''):
-                    DataSet.name = fileName
-                DataSet.name = self.parent.cleanStringName(DataSet.name)
-                self.parent.addImportResults(DataSet)
+                if(DataSet.verify()):
+                    if(DataSet.name == ''):
+                        DataSet.name = fileName
+                    DataSet.name = self.parent.cleanStringName(DataSet.name)
+                    self.parent.submitResultsToWorkspace(None, DataSet)
+                else:
+                    print('DataSet is corrupted: Aborting Import.')
         else:
             print('Import Error!')
 

@@ -41,6 +41,9 @@ class ds_user_script(UserOperation):
         print('Primary selection name = ' + Meta['Data2'][0].name)
         print('File dialog URL = ' + Meta['File'])
 
+        print('')
+        print('')
+
         if(Meta['Combo'] == 'Option 1'):
             print('YOU SELECTED NUMBER ! DOOD')
 
@@ -48,10 +51,16 @@ class ds_user_script(UserOperation):
             Meta['Progress'] = num
             sleep(Meta['Length']/100)
 
+        print(VALUE_CUSTOM_A)
         idx = 0
         for item in Meta['Data']:
             idx += 1
+
+            print('Outputting DataSet #' + str(idx))
+            for axis in item.axes:
+                print('It has an Axis(' + axis.name + ') with units ' + axis.units + '.')
             outputData = ScriptIOData()
             outputData.matrix = item.matrix
             outputData.name = str(Meta['Length']) + ' Second Wait (#' + str(idx) + ')'
+            outputData.axes = item.axes
             DataOut.append(outputData)
