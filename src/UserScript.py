@@ -41,6 +41,17 @@ class UserGenerator(UserScript):
 
 class UserImport(UserScript):
     type = 'Import'
+    registeredFiletypes = {}
+
+    def import_func(self, DataOut, URL, FileName):
+        print('Nothing was imported!')
+        return False
+
+    def genFilter(self):
+        outputList = ''
+        for key, val in sorted(self.registeredFiletypes.items()):
+            outputList = outputList + '*' + val.lower() + ';;'
+        return outputList[:-2]
 
 class UserInteract(UserScript):
     type = 'Interact'

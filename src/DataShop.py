@@ -1,4 +1,4 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue, json
 from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -9,7 +9,7 @@ from xml.dom.minidom import *
 from xml.etree.ElementTree import *
 from PyQt5.QtCore import Qt, QVariant, QTimer, QSize
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon, QFont
+from PyQt5.QtGui import *
 from UserScriptsController import *
 from UserScript import *
 
@@ -19,9 +19,65 @@ class WorkspaceTree(QTreeWidget):
         super().__init__()
         self.setDragEnabled(True)
 
+class settingsDefaultImporterListWidget(QWidget):
+    def __init__(self, ext, importers, defImporter):
+        QWidget.__init__(self)
+        self.ext = ext
+        self.importers = importers
+        self.defImporter = defImporter
+        layout = QHBoxLayout()
+        self.setLayout(layout)
+        self.comboBox = QComboBox()
+
+        layout.addWidget(QLabel('(*' + ext.lower() + '):'))
+        layout.addWidget(self.comboBox)
+
+        index = 0
+        for importer in importers:
+            self.comboBox.addItem(importer.name)
+            if(importer.name == defImporter):
+                self.comboBox.setCurrentIndex(index)
+            index += 1
+
+    def getNameOfSelected(self):
+        return self.comboBox.currentText()
+
+class settingsWidgetController():
+    def __init__(self, workspace, settingsWidget):
+        self.settingsWidget = settingsWidget
+        self.workspace = workspace
+
+        self.settingsGeneral = QWidget()
+        self.settingsImporters = self.drawImportersSettingsTab()
+
+        self.settingsWidget.addTab(self.settingsGeneral, 'General')
+        self.settingsWidget.addTab(self.settingsImporters, 'Importers')
+
+    def drawImportersSettingsTab(self):
+        container = QWidget()
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        container.setLayout(layout)
+
+        # for self.settings['Default Importers']
+        self.importSettingsWidgetList = []
+        for ext, importers in sorted(self.workspace.userScripts.registeredImportersList.items()):
+            defaultItem = settingsDefaultImporterListWidget(ext, importers, self.workspace.settings['Default Importers'][ext])
+            self.importSettingsWidgetList.append(defaultItem)
+            layout.addWidget(defaultItem)
+
+        return container
+
+    def getNewSettings(self):
+        for defaultItem in self.importSettingsWidgetList:
+            #print(defaultItem.getNameOfSelected())
+            #print(self.workspace.settings['Default Importers'])
+            self.workspace.settings['Default Importers'][defaultItem.ext.upper()] = defaultItem.getNameOfSelected()
+
 class DSWorkspace():
     workspaceURL = ''
     directoryURL = os.path.dirname(os.path.realpath(__file__))
+    settingsURL = 'settings.json'
     userScripts = None
     ITEM_GUID = Qt.UserRole
     ITEM_TYPE = Qt.UserRole+1
@@ -30,7 +86,44 @@ class DSWorkspace():
     def __init__(self, mainWindow):
         super().__init__()
         self.mainWindow = mainWindow
+        self.readSettings()
         self.initTree()
+
+    def initSettingsTabs(self, settingsWidget):
+        self.settingsWidgetController = settingsWidgetController(self, settingsWidget)
+
+    def applySettingsButton(self):
+        self.settingsWidgetController.getNewSettings()
+        self.updateSettings()
+
+    def readSettings(self):
+        print('Loading Settings... ', end="", flush=True)
+        if(os.path.isfile(self.settingsURL)):
+            with open(self.settingsURL, 'r+') as inFile:
+                try:
+                    self.settings = json.load(inFile)
+                    inFile.close()
+                    #print(self.settings)
+                    print('Done!')
+                except ValueError:
+                    print('Settings File is Corrupt!!! Making New One..')
+                    inFile.close()
+                    self.settings = self.generateDefaultSettingsFile()
+                    self.updateSettings()
+        else:
+            print('Settings File Not Found! Making New One..')
+            self.settings = self.generateDefaultSettingsFile()
+            self.updateSettings()
+
+    def updateSettings(self):
+        print('Updating Settings File... ', end="", flush=True)
+        with open(self.settingsURL, 'w') as file:
+            json.dump(self.settings, file)
+        print('Done!')
+
+    def generateDefaultSettingsFile(self):
+        data = {'Default Importers': {}}
+        return data
 
     def initTree(self):
         self.treeWidget = WorkspaceTree()
@@ -203,25 +296,16 @@ class DSWorkspace():
         str = str.replace(" ", "_")
         return str
 
-    #def importDialog(self):
-
     def importData(self):
-        #fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL, filter='*.csv')
-        fname = QFileDialog.getOpenFileName(mW, 'Open File', self.workspaceURL)
+        fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL, filter=self.userScripts.genImportDialogFilter())
         for fileURL in fname[0]:
             fileName, fileExtension = os.path.splitext(fileURL)
-            print(fileName)
-            print(fileExtension)
-            print(fileURL)
-        if fname[0]:
-            try:
-                data = np.genfromtxt(fname[0], delimiter=',')
-                name = self.cleanStringName(os.path.basename(fname[0]))
-                data = {'GUID': self.saveDSToSql(name, data), 'Type': 'Data', 'Name': name}
-                self.addItem(self.root, data)
-                self.saveWSToSql()
-            except ValueError:
-                print('Import Error, .csv might be corrupted.')
+            self.userScripts.runDefaultImporter(fileURL, fileExtension)
+
+    def addImportResults(self, dataSet):
+        data = {'GUID': self.saveDSToSql(dataSet.name, dataSet.matrix), 'Type': 'Data', 'Name': dataSet.name}
+        self.addItem(self.root, data)
+        self.saveWSToSql()
 
     def getItemData(self, selectedItem):
         GUID = selectedItem.data(0, self.ITEM_GUID)
@@ -353,6 +437,7 @@ class DSWorkspace():
         text, ok = QInputDialog.getText(mW, 'Rename Item', 'Enter New Name', text=selectedItem.text(0))
         if(ok):
             selectedItem.setText(0, self.cleanStringName(text))
+            selectedItem.setData(0, self.ITEM_NAME, text)
             self.renameDSFromSql(selectedItem)
             self.saveWSToSql()
 
@@ -448,6 +533,7 @@ class mainWindow(QMainWindow):
             self.openAction.setEnabled(True)
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
+            self.importMenu.setEnabled(False)
         elif(state == self.MW_STATE_WORKSPACE_LOADED):
             self.exitAction.setEnabled(True)
             self.newAction.setEnabled(True)
@@ -455,6 +541,7 @@ class mainWindow(QMainWindow):
             self.openAction.setEnabled(True)
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(True)
+            self.importMenu.setEnabled(True)
         else:
             self.exitAction.setEnabled(False)
             self.newAction.setEnabled(False)
@@ -462,6 +549,7 @@ class mainWindow(QMainWindow):
             self.openAction.setEnabled(False)
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
+            self.importMenu.setEnabled(False)
 
     def initActions(self):
         self.exitAction = QAction(QIcon('icons2\minimize.png'), 'Exit', self)
@@ -492,6 +580,9 @@ class mainWindow(QMainWindow):
         self.importAction.setStatusTip('Import Data')
         self.importAction.triggered.connect(self.treeHolder.importData)
 
+        self.viewWindowsAction = QAction('Import', self)
+        self.viewWindowsAction.triggered.connect(self.populateViewWindowMenu)
+
     def initUI(self):
         self.initMenu()
         self.initToolbar()
@@ -506,9 +597,48 @@ class mainWindow(QMainWindow):
         self.workspace.setWidget(self.treeHolder.getTreeWidget())
         self.addDockWidget(Qt.LeftDockWidgetArea, self.workspace)
 
+        self.initSettingsWidget()
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.settingsDockWidget)
+        self.AnimatedDocks = True
+
         self.setGeometry(300, 300, 640, 480)
         self.setWindowTitle('DataShop (Alpha)')
         self.show()
+
+    def initSettingsWidget(self):
+        self.settingsContainer = QWidget()
+        self.settingsLayout = QVBoxLayout()
+        self.settingsWidget = QTabWidget()
+        self.settingsApplyButton = QPushButton('Apply')
+        self.settingsApplyButton.clicked.connect(self.treeHolder.applySettingsButton)
+
+        self.settingsLayout.addWidget(self.settingsWidget)
+        self.settingsLayout.addWidget(self.settingsApplyButton)
+        self.settingsLayout.setSpacing(0)
+
+        self.settingsDockWidget = QDockWidget("Settings", self)
+        self.settingsDockWidget.setFloating(True)
+        self.settingsDockWidget.hide()
+
+        self.settingsContainer.setLayout(self.settingsLayout)
+        self.settingsDockWidget.setWidget(self.settingsContainer)
+
+        self.treeHolder.initSettingsTabs(self.settingsWidget)
+
+    def populateViewWindowMenu(self):
+        windows = self.findChildren(QDockWidget)
+        self.viewWindowsMenu.clear()
+        for window in windows:
+            action = QAction(str(window.windowTitle()), self)
+            action.setCheckable(True)
+            action.setChecked(window.isVisible())
+            #self.workspace.to
+            if(window.isVisible()):
+                action.triggered.connect(window.hide)
+            else:
+                action.triggered.connect(window.show)
+
+            self.viewWindowsMenu.addAction(action)
 
     def initMenu(self):
         self.menubar = self.menuBar()
@@ -522,6 +652,15 @@ class mainWindow(QMainWindow):
         self.fileMenu.addAction(self.importAction)
         self.fileMenu.addSeparator()
         self.fileMenu.addAction(self.exitAction)
+
+        self.viewWindowsMenu = QMenu('Windows')
+        self.viewWindowsMenu.aboutToShow.connect(self.populateViewWindowMenu)
+
+        self.viewMenu = self.menubar.addMenu('&View')
+        self.viewMenu.addMenu(self.viewWindowsMenu)
+
+        self.importMenu = self.menubar.addMenu('&Import')
+        self.treeHolder.userScripts.populateImportMenu(self.importMenu, self)
 
     def initToolbar(self):
         self.toolbar = self.addToolBar('Toolbar')

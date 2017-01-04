@@ -1,4 +1,4 @@
-import os, sys, imp, multiprocessing
+import os, sys, imp, multiprocessing, functools
 from PyQt5.QtCore import Qt, QVariant, QTimer, QSize
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QFont
@@ -17,7 +17,7 @@ class scriptProcessManager():
         self.initTimer()
         self.initProcessWidget()
 
-        print('Building I/O Managers')
+        print('Building I/O Managers... ', end="", flush=True)
         for i in range (0, self.numWorkers):
             self.managers.append(procCommManager())
             self.managers[i].clear()
@@ -127,6 +127,7 @@ class scriptProcessManager():
         Op = self.workspace.submitOperation(worker.uScript, worker.selectedItem)
         dataOut = worker.dOut
         for dataSet in dataOut:
+            dataSet.name = self.workspace.cleanStringName(dataSet.name)
             self.workspace.submitResult(Op, dataSet)
 
         worker.removeJobWidget(self.processList)
@@ -155,6 +156,77 @@ class userScriptsController():
         self.scripts['Interact'] = self.getUserScriptsByType(UserInteract)
         self.scripts['Operation'] = self.getUserScriptsByType(UserOperation)
 
+        self.parseImportScripts()
+
+    def getImporterByExt(self, ext):
+        ext = ext.upper()
+        if ext in self.parent.settings['Default Importers']:
+            defImporterName = self.parent.settings['Default Importers'][ext]
+            for importer in self.registeredImportersList[ext]:
+                if(importer.name == defImporterName):
+                    return importer
+            return None
+        else:
+            return None
+
+    def runDefaultImporter(self, URL, ext):
+        defImporter = self.getImporterByExt(ext)
+        if(defImporter is not None):
+            self.doImport(URL, ext, defImporter)
+        else:
+            print('No import function for extension: ' + ext)
+
+    def runImporter(self, importer):
+        fname = QFileDialog.getOpenFileNames(self.parent.mainWindow, 'Open File', self.parent.workspaceURL, filter=importer.genFilter())
+        for fileURL in fname[0]:
+            fileName, fileExtension = os.path.splitext(fileURL)
+            self.doImport(fileURL, fileExtension, importer)
+
+    def doImport(self, URL, ext, importer):
+        print('Importing (' + URL +') using [' + importer.name + ']...')
+        fileName = os.path.basename(URL)
+        DataOut = []
+        result = importer.import_func(DataOut, URL, fileName)
+        if(result):
+            for DataSet in DataOut:
+                if(DataSet.name == ''):
+                    DataSet.name = fileName
+                DataSet.name = self.parent.cleanStringName(DataSet.name)
+                self.parent.addImportResults(DataSet)
+        else:
+            print('Import Error!')
+
+    def genImportDialogFilter(self):
+        outputList = ''
+        for key, val in sorted(self.registeredImportersList.items()):
+            outputList = outputList + '*' + key.lower() + ';;'
+        return outputList
+
+    def parseImportScripts(self):
+        self.registeredImportersList = {}
+        for script in self.scripts['Import']:
+            for key, ext in script.registeredFiletypes.items():
+                ext = ext.upper()
+                if ext in self.registeredImportersList:
+                    self.registeredImportersList[ext].append(script)
+                else:
+                    self.registeredImportersList[ext] = [script]
+
+        for ext in self.registeredImportersList:
+            if ext in self.parent.settings['Default Importers']:
+                stillExists = False
+                for importer in self.registeredImportersList[ext]:
+                    if(importer.name == self.parent.settings['Default Importers'][ext]):
+                        stillExists = True
+
+                if(stillExists == False):
+                    print('Default Importer for ' + ext + ' no longer exists.')
+                    self.parent.settings['Default Importers'][ext] = self.registeredImportersList[ext][0].name
+            else:
+                self.parent.settings['Default Importers'][ext] = self.registeredImportersList[ext][0].name
+
+        self.parent.updateSettings()
+
     def loadUserScriptFromFile(self, filepath, scriptType):
         class_inst = None
         expected_class = 'ds_user_script'
@@ -182,6 +254,13 @@ class userScriptsController():
     def populateActionMenu(self, menu, scriptType, mW, selectedItem):
         for script in self.scripts[scriptType.type]:
             action = self.initActionForScript(script, mW, selectedItem)
+            menu.addAction(action)
+
+    def populateImportMenu(self, menu, mW):
+        for script in self.scripts['Import']:
+            action = QAction(QIcon('icons2\pendrive.png'), script.name, mW)
+            action.setStatusTip('Import file(s) with ' + script.name)
+            action.triggered.connect(functools.partial(self.runImporter, script))
             menu.addAction(action)
 
     def printUserScriptNames(self):

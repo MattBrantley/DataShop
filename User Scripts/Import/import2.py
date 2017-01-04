@@ -1,8 +1,8 @@
 from UserScript import *
 
 class ds_user_script(UserImport):
-    name = 'CSV Importer Type1'
-    registeredFiletypes = {'Column Separated CSV': '.csv', 'Something Else': '.SomethingElse'}
+    name = 'CSV Importer Type2'
+    registeredFiletypes = {'Column Separated CSV': '.csv', 'THINGS': '.thing'}
 
     def import_func(self, DataOut, URL, FileName):
         try:
