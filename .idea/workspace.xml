@@ -2,20 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="68390bd0-d53d-4c6a-b972-292ba4e25c6d" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Test Data/Workspace.db" afterPath="$PROJECT_DIR$/Test Data/Workspace.db" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_Determinant_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_Determinant_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_InvertCols_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_InvertCols_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_InvertRows_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_InvertRows_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_Normalize_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_Normalize_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SliceCols_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SliceCols_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SliceRows_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SliceRows_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_StandardDev_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_StandardDev_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SumCols_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SumCols_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SumRows_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_SumRows_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/2dmat_Transpose_v01.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/2dmat_Transpose_v01.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Operation/_1dmat_R2_v00a.py" afterPath="$PROJECT_DIR$/User Scripts/Operation/_1dmat_R2_v00a.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/DataShop.py" afterPath="$PROJECT_DIR$/src/DataShop.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/QTTestProject.iml" afterPath="$PROJECT_DIR$/.idea/QTTestProject.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/dictionaries/Ian_Anthony.xml" afterPath="$PROJECT_DIR$/.idea/dictionaries/Ian_Anthony.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -29,27 +19,13 @@
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
-    <leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="DataShop.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/DataShop.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="229">
-              <caret line="212" column="27" lean-forward="true" selection-start-line="212" selection-start-column="27" selection-end-line="212" selection-end-column="27" />
-              <folding>
-                <element signature="e#0#127#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Wait 10 Seconds.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 10 Seconds.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="122">
-              <caret line="36" column="54" lean-forward="false" selection-start-line="36" selection-start-column="54" selection-end-line="36" selection-end-column="54" />
-              <folding>
-                <element signature="e#0#24#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="249">
+              <caret line="213" column="20" lean-forward="true" selection-start-line="213" selection-start-column="20" selection-end-line="213" selection-end-column="20" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -57,7 +33,7 @@
       <file leaf-file-name="2dmat_Transpose_v01.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/User Scripts/Operation/2dmat_Transpose_v01.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="340">
+            <state relative-caret-position="580">
               <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="30" selection-end-column="53" />
               <folding>
                 <element signature="e#125#149#0" expanded="true" />
@@ -95,8 +71,10 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="width" value="1310" />
-    <option name="height" value="1040" />
+    <option name="x" value="-8" />
+    <option name="y" value="-8" />
+    <option name="width" value="1936" />
+    <option name="height" value="1056" />
   </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
@@ -194,6 +172,9 @@
       <pane id="Scratches" />
       <pane id="Scope" />
     </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunManager" selected="Python.DataShop">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
@@ -365,26 +346,26 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="0" width="1310" height="1040" extended-state="0" />
-    <editor active="false" />
+    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
+    <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.18238021" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.18229167" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32975295" sideWeight="0.5042373" order="-1" side_tool="true" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32975295" sideWeight="0.4957627" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32975295" sideWeight="0.5042373" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32975295" sideWeight="0.4957627" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="VcsContentAnnotationSettings">
@@ -397,23 +378,29 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 10 Seconds.py">
+    <entry file="file://$PROJECT_DIR$/src/DataShop.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="122">
-          <caret line="36" column="54" lean-forward="false" selection-start-line="36" selection-start-column="54" selection-end-line="36" selection-end-column="54" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/2dmat_Transpose_v01.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="580">
+          <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="30" selection-end-column="53" />
           <folding>
-            <element signature="e#0#24#0" expanded="true" />
+            <element signature="e#125#149#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/Wait 10 Seconds.py" />
     <entry file="file://$PROJECT_DIR$/User Scripts/Operation/2dmat_Determinant_v01.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="680">
           <caret line="34" column="60" lean-forward="true" selection-start-line="34" selection-start-column="60" selection-end-line="34" selection-end-column="60" />
-          <folding>
-            <element signature="e#106#130#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -421,9 +408,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="36" selection-end-column="44" />
-          <folding>
-            <element signature="e#128#152#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -431,9 +415,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="36" selection-end-column="44" />
-          <folding>
-            <element signature="e#131#155#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -441,10 +422,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="700">
           <caret line="35" column="47" lean-forward="false" selection-start-line="35" selection-start-column="47" selection-end-line="35" selection-end-column="47" />
-          <folding>
-            <element signature="e#112#136#0" expanded="true" />
-            <marker date="1483403668467" expanded="true" signature="193:1225" ph="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -452,9 +429,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="480">
           <caret line="24" column="8" lean-forward="false" selection-start-line="24" selection-start-column="8" selection-end-line="24" selection-end-column="56" />
-          <folding>
-            <element signature="e#151#175#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -462,9 +436,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="500">
           <caret line="25" column="56" lean-forward="true" selection-start-line="25" selection-start-column="8" selection-end-line="25" selection-end-column="56" />
-          <folding>
-            <element signature="e#112#136#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -472,9 +443,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="35" selection-end-column="44" />
-          <folding>
-            <element signature="e#146#170#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -483,14 +451,14 @@
         <state relative-caret-position="260">
           <caret line="13" column="44" lean-forward="true" selection-start-line="13" selection-start-column="44" selection-end-line="13" selection-end-column="44" />
           <folding>
-            <element signature="e#118#142#0" expanded="true" />
+            <element signature="e#118#142#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/User Scripts/Operation/2dmat_Transpose_v01.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="340">
+        <state relative-caret-position="580">
           <caret line="29" column="0" lean-forward="false" selection-start-line="29" selection-start-column="0" selection-end-line="30" selection-end-column="53" />
           <folding>
             <element signature="e#125#149#0" expanded="true" />
@@ -500,31 +468,17 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/DataShop.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="229">
-          <caret line="212" column="27" lean-forward="true" selection-start-line="212" selection-start-column="27" selection-end-line="212" selection-end-column="27" />
-          <folding>
-            <element signature="e#0#127#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="249">
+          <caret line="213" column="20" lean-forward="true" selection-start-line="213" selection-start-column="20" selection-end-line="213" selection-end-column="20" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/_1dmat_R2_v00a.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="300">
-          <caret line="15" column="18" lean-forward="true" selection-start-line="15" selection-start-column="18" selection-end-line="15" selection-end-column="18" />
-          <folding>
-            <element signature="e#108#132#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/User Scripts/Operation/_1dmat_R2_v00a.py" />
     <entry file="file://$PROJECT_DIR$/User Scripts/Operation/2dmat_SumCols_v01.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="320">
           <caret line="16" column="0" lean-forward="false" selection-start-line="16" selection-start-column="0" selection-end-line="21" selection-end-column="40" />
-          <folding>
-            <element signature="e#118#142#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
