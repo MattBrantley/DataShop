@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+<<<<<<< HEAD
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.5.1 (C:\Users\Ian_Anthony\AppData\Local\Continuum\Anaconda3\python.exe)" project-jdk-type="Python SDK" />
+=======
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.5.2 (C:\Users\Matthew_Brantley\AppData\Local\Continuum\Anaconda3\python.exe)" project-jdk-type="Python SDK" />
+>>>>>>> refs/remotes/origin/Adding-Import-Scripts
 </project>

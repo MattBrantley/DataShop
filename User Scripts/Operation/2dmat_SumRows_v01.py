@@ -4,7 +4,7 @@ Takes a 2-dimensional matrix of size [m, n] and returns a summed vector of
 length m.
 """
 
-from UserScript import UserOperation, ScriptIOData
+from UserScript import *
 import numpy as np
 
 class ds_user_script(UserOperation):
@@ -14,20 +14,23 @@ class ds_user_script(UserOperation):
     tooltip = 'Sums the rows of a 2D matrix'
     nDimension = 2
     nDataSets = 1
-    version = 0.1
+    version = 0.3
 
-    def operation(self, DataOut, DataIn, Meta):
+    DataSet = DataSetSettingsObject(minimum=1, maximum=1, primaryEnabled=True)
+    DataSet.setDescription('An input matrix')
+
+    settings = {'Input Matrix': DataSet}
+
+    def operation(self, DataOut, Meta):
         """The generic 'main' function of an operation type user script."""
-        # self.DataIn is a list of ScriptIOData types. We want the first (or
-        # slice [0]) of this list.
-        dataInputObject = DataIn[0]
+        dataInputMatrix = Meta['Input Matrix'][0].matrix
+        row, col = dataInputMatrix.shape
         # The first slice of this list contains a matrix attribute, that
         # should be a numpy array.
-        dataInputArray = dataInputObject.matrix
-        if not isinstance(dataInputArray, np.ndarray):
+        if not isinstance(dataInputMatrix, np.ndarray):
             raise TypeError('Is not an array!')
         else:
-            rows, cols = dataInputArray.shape
             dataOutputObject = ScriptIOData()
-            dataOutputObject.matrix = np.sum(dataInputArray, axis=0)
+            dataOutputObject.matrix = np.sum(dataInputMatrix, axis=0)
+            dataOutputObject.name = 'Result x{}'.format(col)
             DataOut.append(dataOutputObject)

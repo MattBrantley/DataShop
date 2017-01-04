@@ -3,9 +3,16 @@
 Deconvolution functions for working with Vacuum Ultraviolet Data.
 """
 import numpy as np
+import json
 from scipy import optimize
+import scipy.interpolate
+from PyQt5.QtWidgets import QFileDialog
+import tkinter
+import tkinter.filedialog
+import sqlite3
+import struct
 
-def simplisma(vuvMat, nComps=2, offset=0.02):
+def simplisma(vuvMat, nComps, offset):
     """
     Takes the truncated data set, the offset (indicating the amount of allowed
     divergence -- smaller is better for higher quality data), and the number
@@ -54,7 +61,7 @@ def simplisma(vuvMat, nComps=2, offset=0.02):
     return startChrom, startSpec, compSpec, puritySpec
 
 
-def mcr(vuvMat, numComps=2, noise=0.01):
+def mcr(vuvMat, numComps, noise):
     '''Althernate method of purity spectra generation.'''
     # Calculates a large number of constants and a few dot products
     nRow, nCol = vuvMat.shape
@@ -77,7 +84,6 @@ def mcr(vuvMat, numComps=2, noise=0.01):
     # mixture!
     for i in range(1, numComps):
         for j in range(nCol):
-            # wmat(c, pureIndex, i, j)
             dm = np.zeros((i+1, i+1))
             dm[0][0] = c[j][j]
             for k in range(i):
@@ -99,7 +105,7 @@ def mcr(vuvMat, numComps=2, noise=0.01):
     for i in range(numComps):
         λ = compSpec.conj()[i]
         startSpecMat[i] = λ / np.sqrt(sum(λ*λ))
-    startSpec = startSpecMat
+    startSpec = startSpecMat.T
     return startSpec
 
 
@@ -120,7 +126,7 @@ def cls(vuvArray, startCond):
     vaRow, vaCol = vuvArray.shape
     scRow, scCol = startCond.shape
     if scRow > scCol:
-        startCond.T
+        startCond = startCond.T
         scRow, scCol = startCond.shape
     if scCol != vaRow:
         vuvArray = vuvArray.T
@@ -136,7 +142,7 @@ def cls(vuvArray, startCond):
         c = (tmp @ startCond) @ vuvArray[:, i]
         concentration[i] = c
 
-    # Normalization of results, so that the height of the data = 1.
+    # Normalization of results, so that the height of the data is 1.
     compSums = np.sum(startCond, axis=1)
     rawResults = np.array(concentration).T
     processedResults = np.ones_like(rawResults)
@@ -148,7 +154,7 @@ def cls(vuvArray, startCond):
     return results
 
 
-def als(vuvArray, startCond, numIter=100, convSigma=0.02):
+def als(vuvArray, startCond, Meta=None, numIter=100, convSigma=0.00):
     """
     The alternating least squares method iterates, given starting conditions,
     to attempt to converge on a solution. Performance and results depend
@@ -193,11 +199,12 @@ def als(vuvArray, startCond, numIter=100, convSigma=0.02):
     # Matlab ALS calculates a few more numbers here, but I'm opting not to.
     # (They include a printout of the initial match/CPU time - unnecessary)
     sstn = np.sum(vuvArray * vuvArray)
-    sst = np.sum(pcaMat * pcaMat)
     sigma2 = np.sqrt(sstn)
     divCount = 0
     # Main iteration loop
     for iterCount in range(numIter):
+        if Meta:
+            Meta['Progress'] = iterCount / numIter * 100
         # Estimate concentrations of the ALS solutions.
         conc = np.linalg.lstsq(absorb.T, pcaMat.T)[0].T
         # Non-negativity constraints
@@ -205,7 +212,7 @@ def als(vuvArray, startCond, numIter=100, convSigma=0.02):
         for i in range(vaRow):
             tmp1 = absorb @ absorb.conj().T
             tmp2 = absorb @ vuvArray[i, :].conj().T
-            nnls = optimize.nnls(tmp1, tmp2)
+            nnls = optimize.nnls(tmp1, tmp2)[0]
             conc2[i, :] = nnls.conj().T
         conc = conc2
         absorb = np.linalg.lstsq(conc, vuvArray)[0]
@@ -238,3 +245,112 @@ def als(vuvArray, startCond, numIter=100, convSigma=0.02):
             return sopt.conj(), copt.T
     # print('Iterations exceeded allowed.')
     return sopt.conj(), copt.T
+
+
+def getlibrary():
+    root = tkinter.Tk()
+    root.withdraw()
+    getfile = tkinter.filedialog.askopenfilename
+    libPath = getfile()
+    with open('{}'.format(libPath)) as libObject:
+        library = json.load(libObject)
+    return(library)
+
+
+def r2calc(xMeas, yMeas, xRef, yRef):
+    """Calculates the R-squared value for two vectors"""
+    # =========================================================================
+    # If the number of y points in the measured and reference vectors are not
+    # equivalent, iterpolates the measured vector to have the same number of
+    # data points as the reference spectra.
+    # =========================================================================
+    if len(yMeas) != len(yRef):
+        interpolate = scipy.interpolate.interp1d
+        yMeas = interpolate(xMeas, yMeas, kind='linear',
+                            fill_value='extrapolate')(xRef)
+    # =========================================================================
+    # Produces a correlation coefficient matrix of the y values.
+    # =========================================================================
+    rMatrix = np.corrcoef(yMeas, yRef)
+    r2 = rMatrix[0][1] ** 2
+    return r2
+
+
+def searchspectra(vSpecX, vSpecY, library, returnList=True):
+    results = []
+    for name in library:
+        spectra = library[name]['VUV Data']
+        xVals = spectra[0]
+        yVals = spectra[1]
+        r2 = r2calc(vSpecX, vSpecY, xVals, yVals)
+        results.append((name, r2))
+    results.sort(key=lambda x: x[1], reverse=True)
+    print(results[0], len(results))
+    if returnList:
+        return results
+    else:
+        topResult = results[0][0]
+        topResultR2 = results[0][1]
+        topResultData = library[topResult]['VUV Data']
+        return topResult, topResultR2, topResultData
+
+
+def interpolatespectra(xBad, yBad, xGood):
+    if (len(xBad) != len(yBad)):
+        raise ValueError('Data does not align!')
+    elif len(xBad) != len(xGood):
+        yNew = scipy.interpolate.interp1d(xBad, yBad, kind='linear',
+                                          fill_value='extrapolate')(xGood)
+        return yNew
+
+
+def extractvuv(vuvFile, startWave=125, endWave=240, startTime=0, endTime=600):
+    '''
+    Connects to the provided VUV file (a .db, database file) via sqlite,
+    extracts the data, crops it, and returns three numpy arrays of the time
+    points, the wavelength points, and the data matrix that corresponds to the
+    time points and wavelength points. User will be prompted for other
+    parameters if they are not provided.
+    '''
+    conn = sqlite3.connect(vuvFile)
+    c = conn.cursor()
+    c.execute("SELECT * FROM {}".format('WL_Names'))
+    rawλs = c.fetchall()[0][0]
+    c.execute('SELECT {} FROM {}'.format('Time', 'Scan'))
+    rawTimes = c.fetchall()
+    c.execute("SELECT {} FROM {}".format('ABS', 'Scan'))
+    rawArray = c.fetchall()
+    conn.close()
+    print('324')
+    # =========================================================================
+    # Unpacks the raw data and interpolates any problematic (nan/inf) points.
+    # The '~' invertes the boolean matrix/mask.
+    # =========================================================================
+    unpackedTimes = np.array([time[0] for time in rawTimes])
+    unpackedλs = np.array([struct.unpack('>f', rawλs[num:num+4])[0]
+                          for num in range(0, len(rawλs), 4)])
+    unpackedArray = np.zeros([len(rawArray), len(unpackedλs)], dtype='>f')
+    for row, data in enumerate(rawArray):
+        points = [struct.unpack('>f', data[0][num:num+4])
+                  for num in range(0, len(data[0]), 4)]
+        unpackedArray[row] = np.array(points).T
+    mask = (np.isnan(unpackedArray) + np.isinf(unpackedArray))
+    unpackedArray[mask] = np.interp(np.flatnonzero(mask),
+                                    np.flatnonzero(~mask),
+                                    unpackedArray[~mask])
+    startλIndex = len(np.where(unpackedλs <= startWave)[0])
+    endλIndex = len(np.where(unpackedλs <= endWave)[0])
+    startTimeIndex = len(np.where(unpackedTimes <= startTime)[0])
+    endTimeIndex = len(np.where(unpackedTimes <= endTime)[0]) + 1
+    # =========================================================================
+    # The axis lists and main data array are cropped and returned.
+    # =========================================================================
+    print('wave = ', len(unpackedλs), 'times = ', len(unpackedTimes))
+    print(startλIndex, endλIndex, startTimeIndex, endTimeIndex)
+
+    λPts = np.array(unpackedλs[startλIndex:endλIndex])
+    timePts = unpackedTimes[startTimeIndex:endTimeIndex]
+    trimmedArray = unpackedArray[startTimeIndex:endTimeIndex].T
+    vuvArray = trimmedArray[startλIndex:endλIndex]
+    print(vuvArray.shape)
+    return timePts, λPts, vuvArray
