@@ -7,7 +7,7 @@ solution matrices of sizes [i, n] and [i, m].
 
 from UserScript import *
 import numpy as np
-import vuvdeconvolution as vuv
+#import vuvdeconvolution as vuv
 
 class ds_user_script(UserOperation):
     """Creates a user script of the operation type."""

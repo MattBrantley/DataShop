@@ -1,4 +1,5 @@
 from UserScript import *
+import DSUnits, DSPrefix
 
 class ds_user_script(UserImport):
     name = 'CSV Importer 2D'
@@ -7,21 +8,13 @@ class ds_user_script(UserImport):
     def import_func(self, DataOut, URL, FileName):
         try:
             loadedData = np.genfromtxt(URL, delimiter=',')
-            #print(type(loadedData))
-            #print(loadedData.shape)
             axisData = loadedData[:,0]
             matrixData = loadedData[:,1]
-
             outputData = ScriptIOData()
             outputData.matrix = matrixData
             outputData.name = FileName
-
-            axisObject = ScriptIOAxis()
-            axisObject.name = 'Example Axis'
-            axisObject.vector = axisData
-
+            axisObject = ScriptIOAxis(name='Example Axis', vector=axisData)
             outputData.axes.append(axisObject)
-
             DataOut.append(outputData)
 
             return True

@@ -4,14 +4,44 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from time import sleep
 from UserScriptSettingsObjects import *
-
-VALUE_CUSTOM_A = 1054
+import DSUnits, DSPrefix
 
 class ScriptIOAxis():
-    name = 'N/A'
-    units = 'arbitrary'
-    length = 0
-    vector = None
+
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name', 'N/A')
+        self.units = kwargs.get('units', DSUnits.arbitrary())
+        self.prefix = kwargs.get('prefix', DSPrefix.noPrefix())
+        self.length = 0
+        tVector = kwargs.get('vector', None)
+        if(tVector is not None):
+            self.setVector(tVector)
+        else:
+            self.vector = None
+
+    def setName(self, string):
+        self.name = string
+
+    def setVector(self, vector):
+        if(issubclass(type(vector), np.ndarray)):
+            if(len(vector.shape) is 1):
+                self.vector = vector
+                self.length = vector[0].size
+            else:
+                print('Axis vector cannot have more than 1 dimension')
+        else:
+            print('Axis vector must be of type numpy.ndarray')
+
+    def setUnits(self, prefix, units):
+        if(issubclass(type(prefix), DSPrefix)):
+            self.prefix = prefix
+        else:
+            print('Invalid prefix being set.')
+
+        if(isinstance(units, DSUnits)):
+            self.units = units
+        else:
+            print('Invalid units being sets.')
 
 class ScriptIOData():
 
@@ -42,7 +72,7 @@ class ScriptIOData():
                 return False
 
             if(type(axis.vector) is not np.ndarray):
-                print('Critical Error!: axis[' + str(axisIdx) + '] is of type (' + str(type(axis.vector)) + '). Axis must be of type numpy.ndarray. Data is corrupt, returning..')
+                print('Critical Error!: axis[' + str(axisIdx) + '].vector is of type (' + str(type(axis.vector)) + '). Axis must be of type numpy.ndarray. Data is corrupt, returning..')
                 return False
 
             if(len(axis.vector.shape) is not 1):

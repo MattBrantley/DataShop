@@ -51,7 +51,6 @@ class ds_user_script(UserOperation):
             Meta['Progress'] = num
             sleep(Meta['Length']/100)
 
-        print(VALUE_CUSTOM_A)
         idx = 0
         for item in Meta['Data']:
             idx += 1

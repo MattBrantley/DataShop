@@ -7,7 +7,7 @@ time points and wavelength points.
 '''
 
 from UserScript import *
-import vuvdeconvolution as vuv
+#import vuvdeconvolution as vuv
 
 class ds_user_script(UserImport):
     """Creates a user script of the import type."""

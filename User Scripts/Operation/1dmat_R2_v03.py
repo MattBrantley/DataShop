@@ -5,7 +5,7 @@ Takes two 1-dimensional matrices, compares them, and returns the R2 value.
 
 from UserScript import *
 import numpy as np
-import vectorutils
+#import vectorutils
 
 
 class ds_user_script(UserOperation):

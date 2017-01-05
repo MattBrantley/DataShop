@@ -1,4 +1,4 @@
-import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue, json
+import sys, uuid, pickle, numpy as np, sqlite3, os, matplotlib.pyplot as plt, random, psutil, imp, multiprocessing, copy, queue, json, DSUnits
 from pathlib import Path
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
@@ -13,6 +13,7 @@ from PyQt5.QtGui import *
 from UserScriptsController import *
 from UserScript import *
 from DataViewer import *
+import DSUnits, DSPrefix
 
 class WorkspaceTree(QTreeWidget):
     ITEM_TYPE = Qt.UserRole+1
@@ -24,8 +25,9 @@ class WorkspaceTree(QTreeWidget):
         self.itemSelectionChanged.connect(self.selectionChangedFunc)
 
     def selectionChangedFunc(self):
-        if(self.selectedItems()[0].data(0, self.ITEM_TYPE) == 'Data'):
-            self.workspace.inspectorWidgetController.drawInspectorWidget(self.selectedItems()[0])
+        if(len(self.selectedItems()) > 0):
+            if(self.selectedItems()[0].data(0, self.ITEM_TYPE) == 'Data'):
+                self.workspace.inspectorWidgetController.drawInspectorWidget(self.selectedItems()[0])
 
     def dragEnterEvent(self, event):
         if(event.mimeData().hasUrls()):
@@ -120,15 +122,21 @@ class inspectorWidgetController():
 
         self.inspectorLayout.addWidget(QLabel('Name: ' + name))
         self.inspectorLayout.addWidget(QLabel('Shape: ' + str(matrix.shape)))
-
         idx = 0
         for axis in axes:
             self.inspectorLayout.addWidget(QLabel('Axis #' + str(idx)))
             self.inspectorLayout.addWidget(QLabel('    Name: ' + axis.name))
-            self.inspectorLayout.addWidget(QLabel('    Units: ' + axis.units))
-            self.inspectorLayout.addWidget(QLabel('    Shape: ' + str(axis.vector.shape)))
+            if(axis.prefix is not None):
+                self.inspectorLayout.addWidget(QLabel('    Units: ' + axis.prefix.prefixSymbol + axis.units.baseQuantity))
+            else:
+                self.inspectorLayout.addWidget(QLabel('    Units: ' + axis.units.baseQuantity))
+            self.inspectorLayout.addWidget(QLabel('    Base Quantity: ' + axis.units.baseQuantity))
+            if(axis.prefix is not None):
+                self.inspectorLayout.addWidget(QLabel('    Prefix: ' + axis.prefix.prefixText))
+            else:
+                self.inspectorLayout.addWidget(QLabel('    Prefix: None'))
+            self.inspectorLayout.addWidget(QLabel('    Length: ' + str(axis.vector[0].size)))
             idx += 1
-
 
 class DSWorkspace():
     workspaceURL = ''
@@ -154,7 +162,6 @@ class DSWorkspace():
         self.settingsWidgetController = settingsWidgetController(self, settingsWidget)
 
     def initInspectorWidget(self, inspectorWidget):
-        print('Init')
         self.inspectorWidgetController = inspectorWidgetController(self, inspectorWidget)
 
     def applySettingsButton(self):
@@ -291,13 +298,13 @@ class DSWorkspace():
         conn.commit()
         conn.close()
 
-    def saveDSToSql(self, name, data, dataType, units):
+    def saveDSToSql(self, name, data, dataType, units, prefix):
         GUID = str(uuid.uuid4().hex)
         GUID = GUID.upper()
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS DataSets (Key INTEGER PRIMARY KEY ASC, Name TEXT NOT NULL, Data Blob, Type TEXT, Units TEXT, GUID TEXT, timeStamp date);')
-        c.execute("INSERT INTO DataSets (Key, Name, Data, GUID, Type, Units, timeStamp) VALUES (NULL, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);", (name, data.dumps(), GUID, dataType, units))
+        c.execute('CREATE TABLE IF NOT EXISTS DataSets (Key INTEGER PRIMARY KEY ASC, Name TEXT NOT NULL, Data Blob, Type TEXT, Units Blob, Prefix Blob, GUID TEXT, timeStamp date);')
+        c.execute("INSERT INTO DataSets (Key, Name, Data, GUID, Type, Units, Prefix, timeStamp) VALUES (NULL, ?, ?, ?, ?, ?, ?,  CURRENT_TIMESTAMP);", (name, data.dumps(), GUID, dataType, pickle.dumps(units), pickle.dumps(prefix)))
         conn.commit()
         conn.close()
         return GUID
@@ -305,10 +312,10 @@ class DSWorkspace():
     def submitResultsToWorkspace(self, Op, dataSet):
         axisList = []
         for axis in dataSet.axes:
-            axisData = {'GUID': self.saveDSToSql(axis.name, axis.vector, 'Axis', axis.units), 'Type': 'Axis', 'Name': axis.name, 'Units': axis.units}
+            axisData = {'GUID': self.saveDSToSql(axis.name, axis.vector, 'Axis', axis.units, axis.prefix), 'Type': 'Axis', 'Name': axis.name, 'Units': axis.units.baseQuantity}
             axisList.append(axisData)
 
-        data = {'GUID': self.saveDSToSql(self.cleanStringName(dataSet.name), dataSet.matrix, 'Matrix', 'Arb'), 'Type': 'Data', 'Name': self.cleanStringName(dataSet.name), 'Units': 'Arb'}
+        data = {'GUID': self.saveDSToSql(self.cleanStringName(dataSet.name), dataSet.matrix, 'Matrix', DSUnits.arbitrary(), DSPrefix.DSPRefix()), 'Type': 'Data', 'Name': self.cleanStringName(dataSet.name), 'Units': DSUnits.arbitrary().baseQuantity}
         if(Op is not None):
             parent = self.addItem(Op, data)
         else:
@@ -616,6 +623,7 @@ class mainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
         self.treeHolder = DSWorkspace(self)
