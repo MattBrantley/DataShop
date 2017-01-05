@@ -2,15 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0f731688-f0e3-415b-94a1-f2e5f4131be2" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/DataViewer.py" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Test Data/Workspace.db" afterPath="$PROJECT_DIR$/Test Data/Workspace.db" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/QTTestProject.iml" afterPath="$PROJECT_DIR$/.idea/QTTestProject.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/User Scripts/Import/import.py" afterPath="$PROJECT_DIR$/User Scripts/Import/import.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/DSPrefix.py" afterPath="$PROJECT_DIR$/src/DSPrefix.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/DSUnits.py" afterPath="$PROJECT_DIR$/src/DSUnits.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/DataShop.py" afterPath="$PROJECT_DIR$/src/DataShop.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/settings.json" afterPath="$PROJECT_DIR$/src/settings.json" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -32,8 +23,8 @@
       <file leaf-file-name="DataShop.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/DataShop.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="270">
-              <caret line="149" column="0" lean-forward="true" selection-start-line="149" selection-start-column="0" selection-end-line="149" selection-end-column="0" />
+            <state relative-caret-position="355">
+              <caret line="207" column="55" lean-forward="true" selection-start-line="207" selection-start-column="55" selection-end-line="207" selection-end-column="55" />
               <folding>
                 <element signature="e#0#142#0" expanded="true" />
                 <element signature="e#755#1701#0" expanded="false" />
@@ -1010,8 +1001,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/DataShop.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="149" column="0" lean-forward="true" selection-start-line="149" selection-start-column="0" selection-end-line="149" selection-end-column="0" />
+        <state relative-caret-position="355">
+          <caret line="207" column="55" lean-forward="true" selection-start-line="207" selection-start-column="55" selection-end-line="207" selection-end-column="55" />
           <folding>
             <element signature="e#0#142#0" expanded="true" />
             <element signature="e#755#1701#0" expanded="false" />
