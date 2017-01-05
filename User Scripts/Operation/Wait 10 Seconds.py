@@ -57,7 +57,7 @@ class ds_user_script(UserOperation):
 
             print('Outputting DataSet #' + str(idx))
             for axis in item.axes:
-                print('It has an Axis(' + axis.name + ') with units ' + axis.units + '.')
+                print('It has an Axis(' + axis.name + ').')
             outputData = ScriptIOData()
             outputData.matrix = item.matrix
             outputData.name = str(Meta['Length']) + ' Second Wait (#' + str(idx) + ')'

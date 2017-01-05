@@ -14,19 +14,49 @@ from UserScriptsController import *
 from UserScript import *
 import DSUnits, DSPrefix
 
-class WorkspaceTree(QTreeWidget):
-    ITEM_TYPE = Qt.UserRole+1
+from DSWidgets.settingsWidget import settingsDockWidget, settingsDefaultImporterListWidget
+from DSWidgets.inspectorWidget import inspectorDockWidget
 
-    def __init__(self, workspace):
+sys._excepthook = sys.excepthook
+
+def default_exception_hook(exctype, value, traceback):
+    print(exctype, value, traceback)
+    sys._excepthook(exctype, value, traceback)
+    sys.exit(1)
+
+sys.excepthook = default_exception_hook
+
+class workspaceTreeDockWidget(QDockWidget):
+
+    def __init__(self, mainWindow):
+        super().__init__('No Workspace Loaded')
+        self.mainWindow = mainWindow
+        self.setFeatures(QDockWidget.DockWidgetFloatable | QDockWidget.DockWidgetMovable)
+
+        self.workspaceTreeWidget = WorkspaceTreeWidget(mainWindow)
+        self.setWidget(self.workspaceTreeWidget)
+
+class WorkspaceTreeWidget(QTreeWidget):
+    ITEM_GUID = Qt.UserRole
+    ITEM_TYPE = Qt.UserRole+1
+    ITEM_NAME = Qt.UserRole+2
+    ITEM_UNITS = Qt.UserRole+3
+
+    def __init__(self, mainWindow):
         super().__init__()
-        self.workspace = workspace
+        self.mainWindow = mainWindow
+        self.workspace = mainWindow.workspace
         self.setDragEnabled(True)
+        self.setHeaderHidden(True)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.openMenu)
+
         self.itemSelectionChanged.connect(self.selectionChangedFunc)
 
     def selectionChangedFunc(self):
         if(len(self.selectedItems()) > 0):
             if(self.selectedItems()[0].data(0, self.ITEM_TYPE) == 'Data'):
-                self.workspace.inspectorWidgetController.drawInspectorWidget(self.selectedItems()[0])
+                self.workspace.mainWindow.inspectorDockWidget.drawInspectorWidget(self.selectedItems()[0])
 
     def dragEnterEvent(self, event):
         if(event.mimeData().hasUrls()):
@@ -45,98 +75,165 @@ class WorkspaceTree(QTreeWidget):
             if(url.isValid):
                 self.workspace.importDataByURL(url.toLocalFile())
 
-class settingsDefaultImporterListWidget(QWidget):
-    def __init__(self, ext, importers, defImporter):
-        QWidget.__init__(self)
-        self.ext = ext
-        self.importers = importers
-        self.defImporter = defImporter
-        layout = QHBoxLayout()
-        self.setLayout(layout)
-        self.comboBox = QComboBox()
+    def getItemLevel(self, item):
+        level = 0
+        while(item.parent()):
+            level += 1
+            item = item.parent()
+        return level
 
-        layout.addWidget(QLabel('(*' + ext.lower() + '):'))
-        layout.addWidget(self.comboBox)
-
-        index = 0
-        for importer in importers:
-            self.comboBox.addItem(importer.name)
-            if(importer.name == defImporter):
-                self.comboBox.setCurrentIndex(index)
-            index += 1
-
-    def getNameOfSelected(self):
-        return self.comboBox.currentText()
-
-class settingsWidgetController():
-    def __init__(self, workspace, settingsWidget):
-        self.settingsWidget = settingsWidget
-        self.workspace = workspace
-
-        self.settingsGeneral = QWidget()
-        self.settingsImporters = self.drawImportersSettingsTab()
-
-        self.settingsWidget.addTab(self.settingsGeneral, 'General')
-        self.settingsWidget.addTab(self.settingsImporters, 'Importers')
-
-    def drawImportersSettingsTab(self):
-        container = QWidget()
-        layout = QVBoxLayout()
-        layout.setSpacing(0)
-        container.setLayout(layout)
-
-        # for self.settings['Default Importers']
-        self.importSettingsWidgetList = []
-        for ext, importers in sorted(self.workspace.userScripts.registeredImportersList.items()):
-            defaultItem = settingsDefaultImporterListWidget(ext, importers, self.workspace.settings['Default Importers'][ext])
-            self.importSettingsWidgetList.append(defaultItem)
-            layout.addWidget(defaultItem)
-
-        return container
-
-    def getNewSettings(self):
-        for defaultItem in self.importSettingsWidgetList:
-            #print(defaultItem.getNameOfSelected())
-            #print(self.workspace.settings['Default Importers'])
-            self.workspace.settings['Default Importers'][defaultItem.ext.upper()] = defaultItem.getNameOfSelected()
-
-class inspectorWidgetController():
-    ITEM_GUID = Qt.UserRole
-    def __init__(self, workspace, inspectorWidget):
-        self.inspectorLayout = inspectorWidget
-        self.workspace = workspace
-
-    def drawInspectorWidget(self, selectedItem):
-
-        while self.inspectorLayout.count():
-            child = self.inspectorLayout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-
-        #self.inspectorLayout.clear()
-        GUID = selectedItem.data(0, self.ITEM_GUID)
-        matrix = self.workspace.loadDataByGUID(GUID)
-        name = self.workspace.loadNameByGUID(GUID)
-        axes = self.workspace.getaxesByGUID(GUID)
-
-        self.inspectorLayout.addWidget(QLabel('Name: ' + name))
-        self.inspectorLayout.addWidget(QLabel('Shape: ' + str(matrix.shape)))
-        idx = 0
-        for axis in axes:
-            self.inspectorLayout.addWidget(QLabel('Axis #' + str(idx)))
-            self.inspectorLayout.addWidget(QLabel('    Name: ' + axis.name))
-            if(axis.prefix is not None):
-                self.inspectorLayout.addWidget(QLabel('    Units (Long): ' + axis.prefix.prefixText + axis.units.baseUnit))
-                self.inspectorLayout.addWidget(QLabel('    Units (Short): ' + axis.prefix.prefixSymbol + axis.units.baseUnitSymbol))
+    def toXML(self):
+        iterator = QTreeWidgetItemIterator(self)
+        workingInd = []
+        wsXML = Element('Workspace')
+        wsXML.append(Comment('Workspace Variables and Operators are Contained Here'))
+        while iterator.value():
+            item = iterator.value()
+            level = self.getItemLevel(item)
+            if (len(workingInd) <= level):
+                workingInd.append(0)
+            if (level > 0):
+                workingInd[level] = SubElement(workingInd[level - 1], item.data(0, self.ITEM_TYPE))
             else:
-                self.inspectorLayout.addWidget(QLabel('    Units: ' + axis.units.baseQuantity))
-            self.inspectorLayout.addWidget(QLabel('    Base Quantity: ' + axis.units.baseQuantity))
-            if(axis.prefix is not None):
-                self.inspectorLayout.addWidget(QLabel('    Prefix: ' + axis.prefix.prefixText))
-            else:
-                self.inspectorLayout.addWidget(QLabel('    Prefix: None'))
-            self.inspectorLayout.addWidget(QLabel('    Length: ' + str(axis.vector.shape[0])))
-            idx += 1
+                workingInd[level] = SubElement(wsXML, item.data(0, self.ITEM_TYPE))
+            workingInd[level].set('Name', item.data(0, self.ITEM_NAME))
+            workingInd[level].set('GUID', item.data(0, self.ITEM_GUID))
+            workingInd[level].set('Type', item.data(0, self.ITEM_TYPE))
+            workingInd[level].set('Units', item.data(0, self.ITEM_UNITS))
+            workingInd[level].text = "\n"
+            workingInd[level].tail = "\n"
+            iterator += 1
+        return wsXML
+
+    def fromXML(self, wsXMLString):
+        self.clear()
+        wsXML = XML(wsXMLString)
+        self.treeItemFromXMLItem(wsXML, self.invisibleRootItem())
+
+    def treeItemFromXMLItem(self, xmlItem, treeItem):
+        for child in xmlItem:
+            Metadata = child.attrib
+            nTreeItem = self.addItem(treeItem, Metadata)
+            self.treeItemFromXMLItem(child, nTreeItem)
+
+    def submitOperation(self, script, selectedItem):
+        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name, 'Units': ''}
+        return self.addItem(selectedItem, dataOp)
+
+    def addItem(self, parent, data):
+        item = QTreeWidgetItem(parent)
+        nName = data['Name']
+        item.setText(0, nName)
+        item.setData(0, self.ITEM_NAME, data['Name'])
+        item.setData(0, self.ITEM_GUID, data['GUID'])
+        item.setData(0, self.ITEM_TYPE, data['Type'])
+        item.setData(0, self.ITEM_UNITS, data['Units'])
+        if(data['Type'] == 'Data'):
+            item.setIcon(0, QIcon('icons4\database-1.png'))
+        if(data['Type'] == 'Operation'):
+            item.setIcon(0, QIcon('icons4\settings-6.png'))
+            font = item.font(0)
+            font.setBold(True)
+            item.setFont(0, font)
+        if(data['Type'] == 'Axis'):
+            item.setHidden(True)
+
+        return item
+
+    def deleteItem(self, selectedItem):
+        if(self.indexOfTopLevelItem(selectedItem) == -1): #Item is a child
+            p = selectedItem.parent()
+            p.removeChild(selectedItem)
+        else:   #Item is top level (these are handled differently)
+            self.takeTopLevelItem(self.indexOfTopLevelItem(selectedItem))
+        self.workspace.deleteDSFromSql(selectedItem)
+
+    def renameItem(self, selectedItem):
+        text, ok = QInputDialog.getText(mW, 'Rename Item', 'Enter New Name', text=selectedItem.text(0))
+        if(ok):
+            selectedItem.setText(0, self.workspace.cleanStringName(text))
+            selectedItem.setData(0, self.ITEM_NAME, text)
+            self.workspace.renameDSInSql(selectedItem)
+            self.workspace.saveWSToSql()
+
+    def treeWidgetItemByGUID(self, GUID):
+        iterator = QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            if(item.data(0, self.ITEM_GUID) == GUID):
+                return item.data(0, self.ITEM_NAME)
+            iterator += 1
+        return 'ERROR!'
+
+    def getAxisGUIDsByDataGUID(self, GUID):
+        iterator = QTreeWidgetItemIterator(self)
+
+        while iterator.value():
+            item = iterator.value()
+            if(item.data(0, self.ITEM_GUID) == GUID):
+                axisGUIDList = []
+                for idx in range(item.childCount()):
+                    child = item.child(idx)
+                    if(child.data(0, self.ITEM_TYPE) == 'Axis'):
+                        axisGUIDList.append(child.data(0, self.ITEM_GUID))
+                return axisGUIDList
+            iterator += 1
+
+        return []
+
+    def initContextActions(self, selectedItem):
+        self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', mW)
+        self.renameAction.setStatusTip('Rename this Item')
+        self.renameAction.triggered.connect(lambda: self.renameItem(selectedItem))
+
+        self.deleteAction = QAction(QIcon('icons\\transfer-1.png'),'Delete Item', mW)
+        self.deleteAction.setStatusTip('Delete this Item from Memory')
+        self.deleteAction.triggered.connect(lambda: self.deleteItem(selectedItem))
+
+        self.linePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Line Plot', mW)
+        self.linePlotAction.setStatusTip('Generate a line plot of this DataSet')
+        self.linePlotAction.triggered.connect(lambda: self.workspace.linePlotItem(selectedItem))
+
+        self.surfacePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Surface Plot', mW)
+        self.surfacePlotAction.setStatusTip('Generate a surface plot of this DataSet')
+        self.surfacePlotAction.triggered.connect(lambda: self.workspace.surfacePlotItem(selectedItem))
+
+    def initContextMenu(self):
+        selectedItem = self.currentItem()
+        itemType = selectedItem.data(0, self.ITEM_TYPE)
+        self.initContextActions(selectedItem)
+        self.contextMenu = QMenu()
+
+        #Universal Workspace Context Menu Actions
+        if(self.workspace.userScripts.processManager.processList.count() is not 0):
+            self.renameAction.setEnabled(False)
+            self.deleteAction.setEnabled(False)
+        self.contextMenu.addAction(self.renameAction)
+        self.contextMenu.addAction(self.deleteAction)
+        self.contextMenu.addSeparator()
+
+        #Type Specific Context Menu Actions
+        if(itemType == 'Data'):
+            self.contextMenu.addAction(self.linePlotAction)
+            self.contextMenu.addAction(self.surfacePlotAction)
+            self.contextMenu.addSeparator()
+            self.workspace.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW, selectedItem)
+
+    def initDefaultContextMenu(self):
+        warningAction = QAction('Nothing selected!', mW)
+        warningAction.setStatusTip('Nothing has been selected!')
+        warningAction.setEnabled(False)
+
+        self.contextMenu = QMenu()
+        self.contextMenu.addAction(warningAction)
+
+    def openMenu(self, position):
+        if (self.selectedItems()):
+            self.initContextMenu()
+            self.contextMenu.exec_(self.viewport().mapToGlobal(position))
+        else:
+            self.initDefaultContextMenu()
+            self.contextMenu.exec_(self.viewport().mapToGlobal(position))
 
 class DSWorkspace():
     workspaceURL = ''
@@ -148,25 +245,13 @@ class DSWorkspace():
     ITEM_NAME = Qt.UserRole+2
     ITEM_UNITS = Qt.UserRole+3
 
-    DataViewerWindows = []
-
     def __init__(self, mainWindow):
         super().__init__()
         self.mainWindow = mainWindow
         self.readSettings()
-        self.initTree()
-
-        #self.dataWindow = DataViewerWindow()
-
-    def initSettingsTabs(self, settingsWidget):
-        self.settingsWidgetController = settingsWidgetController(self, settingsWidget)
-
-    def initInspectorWidget(self, inspectorWidget):
-        self.inspectorWidgetController = inspectorWidgetController(self, inspectorWidget)
-
-    def applySettingsButton(self):
-        self.settingsWidgetController.getNewSettings()
-        self.updateSettings()
+        self.workspaceTreeWidget = None #Will be loaded in by mainWindow
+        self.buildUserScripts()
+        #self.root = self.treeWidget.invisibleRootItem()
 
     def readSettings(self):
         print('Loading Settings... ', end="", flush=True)
@@ -197,16 +282,6 @@ class DSWorkspace():
         data = {'Default Importers': {}}
         return data
 
-    def initTree(self):
-        self.treeWidget = WorkspaceTree(self)
-        self.treeWidget.setHeaderHidden(True)
-        self.treeWidget.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.treeWidget.customContextMenuRequested.connect(self.openMenu)
-
-        self.buildUserScripts()
-
-        self.root = self.treeWidget.invisibleRootItem()
-
     def buildUserScripts(self):
         scriptsURL = os.path.join(str(Path(self.directoryURL).parent), 'User Scripts')
         self.userScripts = userScriptsController(scriptsURL, self)
@@ -214,65 +289,15 @@ class DSWorkspace():
     def setLoadedWorkspace(self, URL):
         self.workspaceURL = URL
         self.directoryURL = os.path.dirname(URL)
-        mW.workspace.setWindowTitle(os.path.basename(URL))
-        mW.updateState(mW.MW_STATE_WORKSPACE_LOADED)
 
-    def indent(self, elem, level=0):
-        i = "\n" + level * "  "
-        j = "\n" + (level - 1) * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-            for subelem in elem:
-                self.indent(subelem, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = j
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = j
-        return elem
-
-    def toXML(self):
-        iterator = QTreeWidgetItemIterator(self.treeWidget)
-        workingInd = []
-        wsXML = Element('Workspace')
-        wsXML.append(Comment('Workspace Variables and Operators are Contained Here'))
-        while iterator.value():
-            item = iterator.value()
-            level = self.getItemLevel(item)
-            if(len(workingInd) <= level):
-                workingInd.append(0)
-            if(level > 0):
-                workingInd[level] = SubElement(workingInd[level-1], item.data(0, self.ITEM_TYPE))
-            else:
-                workingInd[level] = SubElement(wsXML, item.data(0, self.ITEM_TYPE))
-            workingInd[level].set('Name', item.data(0, self.ITEM_NAME))
-            workingInd[level].set('GUID', item.data(0, self.ITEM_GUID))
-            workingInd[level].set('Type', item.data(0, self.ITEM_TYPE))
-            workingInd[level].set('Units', item.data(0, self.ITEM_UNITS))
-            workingInd[level].text = "\n"
-            workingInd[level].tail = "\n"
-            iterator+=1
-        return wsXML
-
-    def fromXML(self, wsXMLString):
-        self.treeWidget.clear()
-        wsXML = XML(wsXMLString)
-        self.treeItemFromXMLItem(wsXML, self.root)
-
-    def treeItemFromXMLItem(self, xmlItem, treeItem):
-        for child in xmlItem:
-            Metadata = child.attrib
-            nTreeItem = self.addItem(treeItem, Metadata)
-            self.treeItemFromXMLItem(child, nTreeItem)
+        self.mainWindow.workspaceTreeDockWidget.setWindowTitle(os.path.basename(URL))
+        self.mainWindow.updateState(mainWindow.MW_STATE_WORKSPACE_LOADED)
 
     def newWorkspace(self):
         fname = QFileDialog.getSaveFileName(mW, 'Save File', self.directoryURL, filter='*.db')
         if fname[0]:
-            self.treeWidget.clear()
-            xmlString = tostring(self.toXML(), encoding="unicode")
+            self.workspaceTreeWidget.clear()
+            xmlString = tostring(self.workspaceTreeWidget.toXML(), encoding="unicode")
             self.setLoadedWorkspace(fname[0])
             conn = sqlite3.connect(fname[0])
             c = conn.cursor()
@@ -289,7 +314,7 @@ class DSWorkspace():
             self.saveWSToSql()
 
     def saveWSToSql(self):
-        xmlString = tostring(self.toXML(), encoding="unicode")
+        xmlString = tostring(self.workspaceTreeWidget.toXML(), encoding="unicode")
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
         c.execute('DROP TABLE IF EXISTS Workspace')
@@ -317,12 +342,12 @@ class DSWorkspace():
 
         data = {'GUID': self.saveDSToSql(self.cleanStringName(dataSet.name), dataSet.matrix, 'Matrix', DSUnits.arbitrary(), DSPrefix.DSPRefix()), 'Type': 'Data', 'Name': self.cleanStringName(dataSet.name), 'Units': DSUnits.arbitrary().baseQuantity}
         if(Op is not None):
-            parent = self.addItem(Op, data)
+            parent = self.workspaceTreeWidget.addItem(Op, data)
         else:
-            parent = self.addItem(self.root, data)
+            parent = self.workspaceTreeWidget.addItem(self.workspaceTreeWidget.invisibleRootItem(), data)
 
         for axisDataItem in axisList:
-            self.addItem(parent, axisDataItem)
+            self.workspaceTreeWidget.addItem(parent, axisDataItem)
 
         self.saveWSToSql()
 
@@ -334,13 +359,17 @@ class DSWorkspace():
         conn.commit()
         conn.close()
 
-    def renameDSFromSql(self, selectedItem):
+        self.saveWSToSql()
+
+    def renameDSInSql(self, selectedItem):
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
         GUID = selectedItem.data(0, self.ITEM_GUID)
         c.execute('UPDATE DataSets SET Name = ? WHERE GUID=?', (selectedItem.text(0), GUID, ))
         conn.commit()
         conn.close()
+
+        self.saveWSToSql()
 
     def loadWSFromSql(self):
         fname = QFileDialog.getOpenFileName(mW, 'Open File', self.directoryURL, filter='*.db')
@@ -352,37 +381,9 @@ class DSWorkspace():
             results = c.fetchone()
             bWorkspace = results[0]
             timeStamp = results[1]
-            self.fromXML(bWorkspace)
+            self.workspaceTreeWidget.fromXML(bWorkspace)
             conn.commit()
             conn.close()
-
-    def getItemLevel(self, item):
-        level = 0
-        while(item.parent()):
-            level += 1
-            item = item.parent()
-        return level
-
-    def addItem(self, parent, data):
-        item = QTreeWidgetItem(parent)
-        nName = data['Name']
-        item.setText(0, nName)
-        item.setData(0, self.ITEM_NAME, data['Name'])
-        item.setData(0, self.ITEM_GUID, data['GUID'])
-        item.setData(0, self.ITEM_TYPE, data['Type'])
-        item.setData(0, self.ITEM_UNITS, data['Units'])
-        if(data['Type'] == 'Data'):
-            item.setIcon(0, QIcon('icons4\database-1.png'))
-        if(data['Type'] == 'Operation'):
-            item.setIcon(0, QIcon('icons4\settings-6.png'))
-            font = item.font(0)
-            font.setBold(True)
-            item.setFont(0, font)
-        if(data['Type'] == 'Axis'):
-            item.setHidden(True)
-        #item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
-
-        return item
 
     def cleanStringName(self, str):
         str = str.replace(" ", "_")
@@ -398,76 +399,41 @@ class DSWorkspace():
         fileName, fileExtension = os.path.splitext(fileURL)
         self.userScripts.runDefaultImporter(fileURL, fileExtension)
 
-    def getItemData(self, selectedItem):
-        GUID = selectedItem.data(0, self.ITEM_GUID)
-        return self.loadDataByGUID(GUID)
-
-    def loadPrefixByGUID(self, GUID):
+    def getScriptIODataFromSQLByGUID(self, GUID):
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
-        c.execute('SELECT Prefix FROM DataSets WHERE GUID=?', (GUID, ))
+        c.execute('SELECT Name, Data, Prefix, Units FROM DataSets WHERE GUID=?', (GUID, ))
         results = c.fetchone()
         conn.commit()
         conn.close()
-        data = None
         if(results):
-            data = pickle.loads(results[0])
-        return data
+            DataSet = ScriptIOData(name=results[0])
+            DataSet.setMatrix(np.loads(results[1]))
+            DataSet.prefix = pickle.loads(results[2])
+            DataSet.units = pickle.loads(results[3])
 
-    def loadUnitsByGUID(self, GUID):
+            axesGUIDList = self.workspaceTreeWidget.getAxisGUIDsByDataGUID(GUID)
+            for axisGUID in axesGUIDList:
+                DataSet.axes.append(self.getScriptIOAxisFromSQLByGUID(axisGUID))
+            return DataSet
+        else:
+            return None
+
+    def getScriptIOAxisFromSQLByGUID(self, GUID):
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
-        c.execute('SELECT Units FROM DataSets WHERE GUID=?', (GUID, ))
+        c.execute('SELECT Name, Data, Prefix, Units FROM DataSets WHERE GUID=?', (GUID, ))
         results = c.fetchone()
         conn.commit()
         conn.close()
-        data = None
         if(results):
-            data = pickle.loads(results[0])
-        return data
-
-    def loadDataByGUID(self, GUID):
-        conn = sqlite3.connect(self.workspaceURL)
-        c = conn.cursor()
-        c.execute('SELECT Data FROM DataSets WHERE GUID=?', (GUID, ))
-        results = c.fetchone()
-        conn.commit()
-        conn.close()
-        data = None
-        if(results):
-            data = np.loads(results[0])
-        return data
-
-    def loadNameByGUID(self, GUID):
-        iterator = QTreeWidgetItemIterator(self.treeWidget)
-        while iterator.value():
-            item = iterator.value()
-            if(item.data(0, self.ITEM_GUID) == GUID):
-                return item.data(0, self.ITEM_NAME)
-            iterator += 1
-        return 'ERROR!'
-
-    def getaxesByGUID(self, GUID):
-        iterator = QTreeWidgetItemIterator(self.treeWidget)
-
-        while iterator.value():
-            item = iterator.value()
-            if(item.data(0, self.ITEM_GUID) == GUID):
-                axisList = []
-                for idx in range(item.childCount()):
-                    child = item.child(idx)
-                    if(child.data(0, self.ITEM_TYPE) == 'Axis'):
-                        childAxis = ScriptIOAxis()
-                        childAxis.name = child.data(0, self.ITEM_NAME)
-                        childGUID = child.data(0, self.ITEM_GUID)
-                        childAxis.vector = self.loadDataByGUID(childGUID)
-                        childAxis.units = self.loadUnitsByGUID(childGUID)
-                        childAxis.prefix = self.loadPrefixByGUID(childGUID)
-                        axisList.append(childAxis)
-                return axisList
-            iterator += 1
-        print('ERROR')
-        return 'ERROR!'
+            Axis = ScriptIOAxis(name=results[0])
+            Axis.setVector(np.loads(results[1]))
+            Axis.prefix = pickle.loads(results[2])
+            Axis.units = pickle.loads(results[3])
+            return Axis
+        else:
+            return None
 
     def surfacePlotItem(self, selectedItem):
         dockWidget = QDockWidget(selectedItem.text(0), mW)
@@ -483,7 +449,9 @@ class DSWorkspace():
         dockWidget.setAttribute(Qt.WA_DeleteOnClose)
         mW.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
         dockWidget.setFloating(True)
-        data = self.getItemData(selectedItem)
+        GUID = selectedItem.data(0, self.ITEM_GUID)
+        dataSet = self.getScriptIODataFromSQLByGUID(GUID)
+        data = dataSet.matrix
         ax = pltFigure.add_subplot(111, projection='3d')
 
         if isinstance(data, np.ndarray):
@@ -529,8 +497,9 @@ class DSWorkspace():
         dockWidget.setAttribute(Qt.WA_DeleteOnClose)
         mW.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
         dockWidget.setFloating(True)
-
-        data = self.getItemData(selectedItem)
+        GUID = selectedItem.data(0, self.ITEM_GUID)
+        dataSet = self.getScriptIODataFromSQLByGUID(GUID)
+        data = dataSet.matrix
         ax = pltFigure.add_subplot(111)
         if isinstance(data, np.ndarray):
             if len(data.shape) == 1:
@@ -561,87 +530,6 @@ class DSWorkspace():
         else:
             dockWidget.close()
 
-    def deleteItem(self, selectedItem):
-        if(self.treeWidget.indexOfTopLevelItem(selectedItem) == -1): #Item is a child
-            p = selectedItem.parent()
-            p.removeChild(selectedItem)
-        else:   #Item is top level (these are handled differently)
-            self.treeWidget.takeTopLevelItem(self.treeWidget.indexOfTopLevelItem(selectedItem))
-        self.deleteDSFromSql(selectedItem)
-        self.saveWSToSql()
-
-    def renameItem(self, selectedItem):
-        text, ok = QInputDialog.getText(mW, 'Rename Item', 'Enter New Name', text=selectedItem.text(0))
-        if(ok):
-            selectedItem.setText(0, self.cleanStringName(text))
-            selectedItem.setData(0, self.ITEM_NAME, text)
-            self.renameDSFromSql(selectedItem)
-            self.saveWSToSql()
-
-    def submitOperation(self, script, selectedItem):
-        dataOp = {'GUID': '', 'Type': 'Operation', 'Name': 'Operation: ' + script.name, 'Units': ''}
-        return self.addItem(selectedItem, dataOp)
-
-    def initContextActions(self, selectedItem):
-        self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', mW)
-        self.renameAction.setStatusTip('Rename this Item')
-        self.renameAction.triggered.connect(lambda: self.renameItem(selectedItem))
-
-        self.deleteAction = QAction(QIcon('icons\\transfer-1.png'),'Delete Item', mW)
-        self.deleteAction.setStatusTip('Delete this Item from Memory')
-        self.deleteAction.triggered.connect(lambda: self.deleteItem(selectedItem))
-
-        self.linePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Line Plot', mW)
-        self.linePlotAction.setStatusTip('Generate a line plot of this DataSet')
-        self.linePlotAction.triggered.connect(lambda: self.linePlotItem(selectedItem))
-
-        self.surfacePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Surface Plot', mW)
-        self.surfacePlotAction.setStatusTip('Generate a surface plot of this DataSet')
-        self.surfacePlotAction.triggered.connect(lambda: self.surfacePlotItem(selectedItem))
-
-    def initContextMenu(self):
-        selectedItem = self.treeWidget.currentItem()
-        itemType = selectedItem.data(0, self.ITEM_TYPE)
-        self.initContextActions(selectedItem)
-        self.contextMenu = QMenu()
-
-        #Universal Workspace Context Menu Actions
-        if(self.userScripts.processManager.processList.count() is not 0):
-            self.renameAction.setEnabled(False)
-            self.deleteAction.setEnabled(False)
-        self.contextMenu.addAction(self.renameAction)
-        self.contextMenu.addAction(self.deleteAction)
-        self.contextMenu.addSeparator()
-
-        #Type Specific Context Menu Actions
-        if(itemType == 'Data'):
-            self.contextMenu.addAction(self.linePlotAction)
-            self.contextMenu.addAction(self.surfacePlotAction)
-            self.contextMenu.addSeparator()
-            self.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW, selectedItem)
-            #self.userScripts.populateActionMenu(self.contextMenu.addMenu('Import'), UserImport, mW, selectedItem)
-
-        #elif(itemType == 'Operation'):
-
-    def initDefaultContextMenu(self):
-        warningAction = QAction('Nothing selected!', mW)
-        warningAction.setStatusTip('Nothing has been selected!')
-        warningAction.setEnabled(False)
-
-        self.contextMenu = QMenu()
-        self.contextMenu.addAction(warningAction)
-
-    def openMenu(self, position):
-        if(self.treeWidget.selectedItems()):
-            self.initContextMenu()
-            self.contextMenu.exec_(self.treeWidget.viewport().mapToGlobal(position))
-        else:
-            self.initDefaultContextMenu()
-            self.contextMenu.exec_(self.treeWidget.viewport().mapToGlobal(position))
-
-    def getTreeWidget(self):
-        return self.treeWidget
-
 class mainWindow(QMainWindow):
     MW_STATE_NO_WORKSPACE = 0
     MW_STATE_WORKSPACE_LOADED = 1
@@ -651,9 +539,15 @@ class mainWindow(QMainWindow):
 
         self.centralWidget = QWidget()
         self.setCentralWidget(self.centralWidget)
-        self.treeHolder = DSWorkspace(self)
         self.statusBar()
-        self.workspace = QDockWidget("No Workspace Loaded", self)
+
+        self.workspace = DSWorkspace(self)
+
+        self.workspaceTreeDockWidget = workspaceTreeDockWidget(self)
+        self.settingsDockWidget = settingsDockWidget(self)
+        self.inspectorDockWidget = inspectorDockWidget(self)
+
+        self.workspace.workspaceTreeWidget = self.workspaceTreeDockWidget.workspaceTreeWidget
 
         self.initActions()
         self.initUI()
@@ -667,7 +561,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
             self.importMenu.setEnabled(False)
-            self.treeHolder.treeWidget.setAcceptDrops(False)
+            self.workspaceTreeDockWidget.workspaceTreeWidget.setAcceptDrops(False)
         elif(state == self.MW_STATE_WORKSPACE_LOADED):
             self.exitAction.setEnabled(True)
             self.newAction.setEnabled(True)
@@ -676,7 +570,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(True)
             self.importMenu.setEnabled(True)
-            self.treeHolder.treeWidget.setAcceptDrops(True)
+            self.workspaceTreeDockWidget.workspaceTreeWidget.setAcceptDrops(True)
         else:
             self.exitAction.setEnabled(False)
             self.newAction.setEnabled(False)
@@ -685,7 +579,7 @@ class mainWindow(QMainWindow):
             self.settingsAction.setEnabled(False)
             self.importAction.setEnabled(False)
             self.importMenu.setEnabled(False)
-            self.treeHolder.treeWidget.setAcceptDrops(False)
+            self.workspaceTreeDockWidget.workspaceTreeWidget.setAcceptDrops(False)
 
     def initActions(self):
         self.exitAction = QAction(QIcon('icons2\minimize.png'), 'Exit', self)
@@ -696,17 +590,17 @@ class mainWindow(QMainWindow):
         self.newAction = QAction(QIcon('icons2\controller.png'), 'New Workspace', self)
         self.newAction.setShortcut('Ctrl+N')
         self.newAction.setStatusTip('Create a New Workspace')
-        self.newAction.triggered.connect(self.treeHolder.newWorkspace)
+        self.newAction.triggered.connect(self.workspace.newWorkspace)
 
         self.saveAction = QAction(QIcon('icons2\save.png'), 'Save Workspace As..', self)
         self.saveAction.setShortcut('Ctrl+S')
         self.saveAction.setStatusTip('Save Workspace As..')
-        self.saveAction.triggered.connect(self.treeHolder.saveWSToNewSql)
+        self.saveAction.triggered.connect(self.workspace.saveWSToNewSql)
 
         self.openAction = QAction(QIcon('icons2\\folder.png'), 'Open Workspace', self)
         self.openAction.setShortcut('Ctrl+O')
         self.openAction.setStatusTip('Open Workspace')
-        self.openAction.triggered.connect(self.treeHolder.loadWSFromSql)
+        self.openAction.triggered.connect(self.workspace.loadWSFromSql)
 
         self.settingsAction = QAction(QIcon('icons2\settings.png'), 'Settings', self)
         self.settingsAction.setShortcut('Ctrl+S')
@@ -714,7 +608,7 @@ class mainWindow(QMainWindow):
 
         self.importAction = QAction(QIcon('icons2\pendrive.png'), 'Import', self)
         self.importAction.setStatusTip('Import Data')
-        self.importAction.triggered.connect(self.treeHolder.importData)
+        self.importAction.triggered.connect(self.workspace.importData)
 
         self.viewWindowsAction = QAction('Import', self)
         self.viewWindowsAction.triggered.connect(self.populateViewWindowMenu)
@@ -729,53 +623,20 @@ class mainWindow(QMainWindow):
         pal.setColor(self.centralWidget.backgroundRole(), Qt.white)
         self.centralWidget.setPalette(pal)
 
-        self.workspace.setFeatures(QDockWidget.DockWidgetFloatable | QDockWidget.DockWidgetMovable)
-        self.workspace.setWidget(self.treeHolder.getTreeWidget())
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.workspace)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.workspaceTreeDockWidget)
 
-        self.initSettingsWidget()
         self.addDockWidget(Qt.BottomDockWidgetArea, self.settingsDockWidget)
-        self.initInspectorWidget()
+        self.settingsDockWidget.setFloating(True)
+
         self.addDockWidget(Qt.BottomDockWidgetArea, self.inspectorDockWidget)
+        self.inspectorDockWidget.setFloating(True)
+
         self.AnimatedDocks = True
         self.setDockNestingEnabled(True)
 
         self.setGeometry(300, 300, 1280, 720)
         self.setWindowTitle('DataShop (Alpha)')
         self.show()
-
-    def initSettingsWidget(self):
-        self.settingsContainer = QWidget()
-        self.settingsLayout = QVBoxLayout()
-        self.settingsWidget = QTabWidget()
-        self.settingsApplyButton = QPushButton('Apply')
-        self.settingsApplyButton.clicked.connect(self.treeHolder.applySettingsButton)
-
-        self.settingsLayout.addWidget(self.settingsWidget)
-        self.settingsLayout.addWidget(self.settingsApplyButton)
-        self.settingsLayout.setSpacing(0)
-
-        self.settingsDockWidget = QDockWidget("Settings", self)
-        self.settingsDockWidget.setFloating(True)
-        self.settingsDockWidget.hide()
-
-        self.settingsContainer.setLayout(self.settingsLayout)
-        self.settingsDockWidget.setWidget(self.settingsContainer)
-
-        self.treeHolder.initSettingsTabs(self.settingsWidget)
-
-    def initInspectorWidget(self):
-        self.inspectorContainer = QWidget()
-        self.inspectorLayout = QVBoxLayout()
-
-        self.inspectorDockWidget = QDockWidget("Inspector", self)
-        self.inspectorDockWidget.setFloating(True)
-        self.inspectorDockWidget.hide()
-
-        self.inspectorContainer.setLayout(self.inspectorLayout)
-        self.inspectorDockWidget.setWidget(self.inspectorContainer)
-
-        self.treeHolder.initInspectorWidget(self.inspectorLayout)
 
     def populateViewWindowMenu(self):
         windows = self.findChildren(QDockWidget)
@@ -812,7 +673,7 @@ class mainWindow(QMainWindow):
         self.viewMenu.addMenu(self.viewWindowsMenu)
 
         self.importMenu = self.menubar.addMenu('&Import')
-        self.treeHolder.userScripts.populateImportMenu(self.importMenu, self)
+        self.workspace.userScripts.populateImportMenu(self.importMenu, self)
 
     def initToolbar(self):
         self.toolbar = self.addToolBar('Toolbar')
@@ -829,4 +690,7 @@ class mainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     mW = mainWindow()
-    sys.exit(app.exec_())
+    try:
+        sys.exit(app.exec_())
+    except:
+        print("Exiting")

@@ -45,11 +45,24 @@ class ScriptIOAxis():
 
 class ScriptIOData():
 
-    def __init__(self):
-        self.matrix = None
-        self.axes = []
-        self.name = 'Result'
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name', 'Result')
+        self.units = kwargs.get('units', DSUnits.arbitrary())
+        self.prefix = kwargs.get('prefix', DSPrefix.noPrefix())
         self.numDims = 0
+        tMatrix = kwargs.get('matrix', None)
+        if(tMatrix is not None):
+            self.setMatrix(tMatrix)
+        else:
+            self.Matrix = None
+        self.axes = []
+
+    def setMatrix(self, matrix):
+        if(issubclass(type(matrix), np.ndarray)):
+            self.matrix = matrix
+            self.numDims = len(self.matrix.shape)
+        else:
+            print('Matrix must be of type numpy.ndarray')
 
     def verify(self): #Verifies the ScriptIODate is complete and valid
         #print('Verification Output:')

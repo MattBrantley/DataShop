@@ -124,7 +124,7 @@ class scriptProcessManager():
         self.activeWorkers.remove(worker)
 
     def completeJob(self, worker):
-        Op = self.workspace.submitOperation(worker.uScript, worker.selectedItem)
+        Op = self.workspace.workspaceTreeWidget.submitOperation(worker.uScript, worker.selectedItem)
         dataOut = worker.dOut
         idx = 0
         for dataSet in dataOut:
