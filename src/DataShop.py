@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from UserScriptsController import *
 from UserScript import *
-from DataViewer import *
 import DSUnits, DSPrefix
 
 class WorkspaceTree(QTreeWidget):
@@ -127,7 +126,8 @@ class inspectorWidgetController():
             self.inspectorLayout.addWidget(QLabel('Axis #' + str(idx)))
             self.inspectorLayout.addWidget(QLabel('    Name: ' + axis.name))
             if(axis.prefix is not None):
-                self.inspectorLayout.addWidget(QLabel('    Units: ' + axis.prefix.prefixSymbol + axis.units.baseQuantity))
+                self.inspectorLayout.addWidget(QLabel('    Units (Long): ' + axis.prefix.prefixText + axis.units.baseUnit))
+                self.inspectorLayout.addWidget(QLabel('    Units (Short): ' + axis.prefix.prefixSymbol + axis.units.baseUnitSymbol))
             else:
                 self.inspectorLayout.addWidget(QLabel('    Units: ' + axis.units.baseQuantity))
             self.inspectorLayout.addWidget(QLabel('    Base Quantity: ' + axis.units.baseQuantity))
@@ -135,7 +135,7 @@ class inspectorWidgetController():
                 self.inspectorLayout.addWidget(QLabel('    Prefix: ' + axis.prefix.prefixText))
             else:
                 self.inspectorLayout.addWidget(QLabel('    Prefix: None'))
-            self.inspectorLayout.addWidget(QLabel('    Length: ' + str(axis.vector[0].size)))
+            self.inspectorLayout.addWidget(QLabel('    Length: ' + str(axis.vector.shape[0])))
             idx += 1
 
 class DSWorkspace():
@@ -402,6 +402,30 @@ class DSWorkspace():
         GUID = selectedItem.data(0, self.ITEM_GUID)
         return self.loadDataByGUID(GUID)
 
+    def loadPrefixByGUID(self, GUID):
+        conn = sqlite3.connect(self.workspaceURL)
+        c = conn.cursor()
+        c.execute('SELECT Prefix FROM DataSets WHERE GUID=?', (GUID, ))
+        results = c.fetchone()
+        conn.commit()
+        conn.close()
+        data = None
+        if(results):
+            data = pickle.loads(results[0])
+        return data
+
+    def loadUnitsByGUID(self, GUID):
+        conn = sqlite3.connect(self.workspaceURL)
+        c = conn.cursor()
+        c.execute('SELECT Units FROM DataSets WHERE GUID=?', (GUID, ))
+        results = c.fetchone()
+        conn.commit()
+        conn.close()
+        data = None
+        if(results):
+            data = pickle.loads(results[0])
+        return data
+
     def loadDataByGUID(self, GUID):
         conn = sqlite3.connect(self.workspaceURL)
         c = conn.cursor()
@@ -435,9 +459,10 @@ class DSWorkspace():
                     if(child.data(0, self.ITEM_TYPE) == 'Axis'):
                         childAxis = ScriptIOAxis()
                         childAxis.name = child.data(0, self.ITEM_NAME)
-                        childAxis.units = child.data(0, self.ITEM_UNITS)
                         childGUID = child.data(0, self.ITEM_GUID)
                         childAxis.vector = self.loadDataByGUID(childGUID)
+                        childAxis.units = self.loadUnitsByGUID(childGUID)
+                        childAxis.prefix = self.loadPrefixByGUID(childGUID)
                         axisList.append(childAxis)
                 return axisList
             iterator += 1

@@ -3,9 +3,6 @@ class DSPRefix():
     prefixText = ''
     prefixSymbol = ''
 
-    def __init__(self):
-        print('Initiliazing DSUnits..')
-
 class noPrefix(DSPRefix):
     modifier = 1
     prefixText = ''

@@ -13,7 +13,7 @@ class ds_user_script(UserImport):
             outputData = ScriptIOData()
             outputData.matrix = matrixData
             outputData.name = FileName
-            axisObject = ScriptIOAxis(name='Example Axis', vector=axisData)
+            axisObject = ScriptIOAxis(name='Example Axis', vector=axisData, units=DSUnits.meter, prefix=DSPrefix.kilo)
             outputData.axes.append(axisObject)
             DataOut.append(outputData)
 

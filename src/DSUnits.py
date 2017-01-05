@@ -4,43 +4,40 @@ class DSUnits():
     baseQuantity = 'Arbitrary'
     baseUnit = 'arbitrary units'
     baseUnitSymbol = 'arb'
-    baseUnit = True
-
-    def __init__(self):
-        print('Initiliazing DSUnits..')
+    derived = False
 
 class arbitrary(DSUnits):
     baseQuantity = 'arbitrary'
     baseUnit = 'arb units'
     baseUnitSymbol = 'arb'
-    baseUnit = True
+    derived = False
 
 class meter(DSUnits):
     baseQuantity = 'length'
     baseUnit = 'meter'
     baseUnitSymbol = 'm'
-    baseUnit = True
+    derived = False
 
 class gram(DSUnits):
     baseQuantity = 'mass'
     baseUnit = 'gram'
     baseUnitSymbol = 'g'
-    baseUnit = True
+    derived = False
 
 class seconds(DSUnits):
     baseQuantity = 'time'
     baseUnit = 'second'
     baseUnitSymbol = 's'
-    baseUnit = True
+    derived = False
 
 class ampere(DSUnits):
     baseQuantity = 'electric current'
     baseUnit = 'ampere'
     baseUnitSymbol = 'A'
-    baseUnit = True
+    derived = False
 
 class kelvin(DSUnits):
     baseQuantity = 'thermodynamic temperature'
     baseUnit = 'kelvin'
     baseUnitSymbol = 'K'
-    baseUnit = True
+    derived = False
