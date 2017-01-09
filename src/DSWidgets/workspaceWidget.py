@@ -1,6 +1,9 @@
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+from xml.dom.minidom import *
+from xml.etree.ElementTree import *
+from UserScript import *
 
 class workspaceTreeDockWidget(QDockWidget):
 
@@ -125,7 +128,7 @@ class WorkspaceTreeWidget(QTreeWidget):
         self.workspace.deleteDSFromSql(selectedItem)
 
     def renameItem(self, selectedItem):
-        text, ok = QInputDialog.getText(mW, 'Rename Item', 'Enter New Name', text=selectedItem.text(0))
+        text, ok = QInputDialog.getText(self.mainWindow, 'Rename Item', 'Enter New Name', text=selectedItem.text(0))
         if(ok):
             selectedItem.setText(0, self.workspace.cleanStringName(text))
             selectedItem.setData(0, self.ITEM_NAME, text)
@@ -158,19 +161,19 @@ class WorkspaceTreeWidget(QTreeWidget):
         return []
 
     def initContextActions(self, selectedItem):
-        self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', mW)
+        self.renameAction = QAction(QIcon('icons\\analytics-1.png'), 'Rename Item', self.mainWindow)
         self.renameAction.setStatusTip('Rename this Item')
         self.renameAction.triggered.connect(lambda: self.renameItem(selectedItem))
 
-        self.deleteAction = QAction(QIcon('icons\\transfer-1.png'),'Delete Item', mW)
+        self.deleteAction = QAction(QIcon('icons\\transfer-1.png'),'Delete Item', self.mainWindow)
         self.deleteAction.setStatusTip('Delete this Item from Memory')
         self.deleteAction.triggered.connect(lambda: self.deleteItem(selectedItem))
 
-        self.linePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Line Plot', mW)
+        self.linePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Line Plot', self.mainWindow)
         self.linePlotAction.setStatusTip('Generate a line plot of this DataSet')
         self.linePlotAction.triggered.connect(lambda: self.workspace.linePlotItem(selectedItem))
 
-        self.surfacePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Surface Plot', mW)
+        self.surfacePlotAction = QAction(QIcon('icons\\analytics-4.png'),'Surface Plot', self.mainWindow)
         self.surfacePlotAction.setStatusTip('Generate a surface plot of this DataSet')
         self.surfacePlotAction.triggered.connect(lambda: self.workspace.surfacePlotItem(selectedItem))
 
@@ -193,10 +196,10 @@ class WorkspaceTreeWidget(QTreeWidget):
             self.contextMenu.addAction(self.linePlotAction)
             self.contextMenu.addAction(self.surfacePlotAction)
             self.contextMenu.addSeparator()
-            self.workspace.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, mW, selectedItem)
+            self.workspace.userScripts.populateActionMenu(self.contextMenu.addMenu('Operations'), UserOperation, self.mainWindow, selectedItem)
 
     def initDefaultContextMenu(self):
-        warningAction = QAction('Nothing selected!', mW)
+        warningAction = QAction('Nothing selected!', self.mainWindow)
         warningAction.setStatusTip('Nothing has been selected!')
         warningAction.setEnabled(False)
 

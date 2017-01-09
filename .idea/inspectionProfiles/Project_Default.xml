@@ -25,5 +25,7 @@
         </list>
       </option>
     </inspection_tool>
+    <inspection_tool class="PyPropertyAccessInspection" enabled="true" level="WEAK WARNING" enabled_by_default="true" />
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="ERROR" enabled_by_default="true" />
   </profile>
 </component>

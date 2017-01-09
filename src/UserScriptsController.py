@@ -93,7 +93,7 @@ class scriptProcessManager():
                 return None
 
     def updateQueueWorkers(self):
-        self.processWidget.setWindowTitle('Process Queue: (' +str(self.processList.count()) + ' items)')
+        self.processWidget.setWindowTitle('Process Queue: (' + str(self.processList.count()) + ' items)')
         if(self.activeWorkers): # This is to counteract some weird case of the list being [None] when empty
             for worker in self.activeWorkers: # Checking if any of the workers have returned
                 worker.updateJobWidget()

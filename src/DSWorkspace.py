@@ -1,4 +1,4 @@
-import os, json, sqlite3
+import os, json, sqlite3, pickle, uuid
 from xml.dom.minidom import *
 from xml.etree.ElementTree import *
 from pathlib import Path
@@ -6,6 +6,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from UserScriptsController import userScriptsController
+from UserScript import *
 
 class DSWorkspace():
     workspaceURL = ''
@@ -65,7 +66,7 @@ class DSWorkspace():
         self.mainWindow.updateState(self.mainWindow.MW_STATE_WORKSPACE_LOADED)
 
     def newWorkspace(self):
-        fname = QFileDialog.getSaveFileName(mW, 'Save File', self.directoryURL, filter='*.db')
+        fname = QFileDialog.getSaveFileName(self.mainWindow, 'Save File', self.directoryURL, filter='*.db')
         if fname[0]:
             self.workspaceTreeWidget.clear()
             xmlString = tostring(self.workspaceTreeWidget.toXML(), encoding="unicode")
@@ -79,7 +80,7 @@ class DSWorkspace():
             conn.close()
 
     def saveWSToNewSql(self):
-        fname = QFileDialog.getSaveFileName(mW, 'Save File', self.directoryURL)
+        fname = QFileDialog.getSaveFileName(self.mainWindow, 'Save File', self.directoryURL)
         if fname[0]:
             self.setLoadedWorkspace(fname[0])
             self.saveWSToSql()
@@ -161,7 +162,7 @@ class DSWorkspace():
         return str
 
     def importData(self):
-        fname = QFileDialog.getOpenFileNames(mW, 'Open File', self.workspaceURL, filter=self.userScripts.genImportDialogFilter())
+        fname = QFileDialog.getOpenFileNames(self.mainWindow, 'Open File', self.workspaceURL, filter=self.userScripts.genImportDialogFilter())
         for fileURL in fname[0]:
             fileName, fileExtension = os.path.splitext(fileURL)
             self.userScripts.runDefaultImporter(fileURL, fileExtension)
@@ -207,7 +208,7 @@ class DSWorkspace():
             return None
 
     def surfacePlotItem(self, selectedItem):
-        dockWidget = QDockWidget(selectedItem.text(0), mW)
+        dockWidget = QDockWidget(selectedItem.text(0), self.mainWindow)
         multiWidget = QWidget()
         layout = QGridLayout()
         pltFigure = plt.figure()
@@ -218,7 +219,7 @@ class DSWorkspace():
         multiWidget.setLayout(layout)
         dockWidget.setWidget(multiWidget)
         dockWidget.setAttribute(Qt.WA_DeleteOnClose)
-        mW.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
+        self.mainWindow.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
         dockWidget.setFloating(True)
         GUID = selectedItem.data(0, self.ITEM_GUID)
         dataSet = self.getScriptIODataFromSQLByGUID(GUID)
@@ -255,7 +256,7 @@ class DSWorkspace():
             dockWidget.close()
 
     def linePlotItem(self, selectedItem):
-        dockWidget = QDockWidget(selectedItem.text(0), mW)
+        dockWidget = QDockWidget(selectedItem.text(0), self.mainWindow)
         multiWidget = QWidget()
         layout = QGridLayout()
         pltFigure = plt.figure()
@@ -266,7 +267,7 @@ class DSWorkspace():
         multiWidget.setLayout(layout)
         dockWidget.setWidget(multiWidget)
         dockWidget.setAttribute(Qt.WA_DeleteOnClose)
-        mW.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
+        self.mainWindow.addDockWidget(Qt.RightDockWidgetArea, dockWidget)
         dockWidget.setFloating(True)
         GUID = selectedItem.data(0, self.ITEM_GUID)
         dataSet = self.getScriptIODataFromSQLByGUID(GUID)
