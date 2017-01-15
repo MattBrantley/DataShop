@@ -2,11 +2,46 @@ import os, json, sqlite3, pickle, uuid
 from xml.dom.minidom import *
 from xml.etree.ElementTree import *
 from pathlib import Path
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import multiprocessing
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from UserScriptsController import userScriptsController
 from UserScript import *
+
+
+class databaseCommManager():
+    killMgr = False
+
+    def __init__(self, workspace):
+        self.workspace = workspace
+        self.mgr = multiprocessing.Manager()
+        self.dataQueue = self.mgr.Queue()
+        self.responseQueue = self.mgr.Queue()
+        self.thread = multiprocessing.Process(group=None, name='Process Worker', target=self.mainLoop, args=(self.workspace.workspaceURL, self.dataQueue, self.responseQueue, ))
+        self.thread.daemon = True
+
+    def mainLoop(self, workspaceURL, dataQueue, responseQueue):
+        while(True):
+            dataSet = dataQueue.get()
+            GUID = str(uuid.uuid4().hex)
+            GUID = GUID.upper()
+            conn = sqlite3.connect(workspaceURL)
+            c = conn.cursor()
+            c.execute('CREATE TABLE IF NOT EXISTS DataSets (Key INTEGER PRIMARY KEY ASC, Name TEXT NOT NULL, Data Blob, Type TEXT, Units Blob, Prefix Blob, GUID TEXT, timeStamp date);')
+            c.execute("INSERT INTO DataSets (Key, Name, Data, GUID, Type, Units, Prefix, timeStamp) VALUES (NULL, ?, ?, ?, ?, ?, ?,  CURRENT_TIMESTAMP);", (dataSet.name, dataSet.matrix.dumps(), GUID, dataSet.dataType, pickle.dumps(DSUnits.arbitrary()), pickle.dumps(DSPrefix.DSPRefix())))
+
+            for axis in dataSet.axes:
+                c.execute("INSERT INTO DataSets (Key, Name, Data, GUID, Type, Units, Prefix, timeStamp) VALUES (NULL, ?, ?, ?, ?, ?, ?,  CURRENT_TIMESTAMP);", (name, data.dumps(), GUID, dataType, pickle.dumps(units), pickle.dumps(prefix)))
+
+            conn.commit()
+            conn.close()
+            data = {'GUID': GUID, 'Type': 'Data', 'Name': dataSet.name, 'Units': DSUnits.arbitrary().baseQuantity}
+
 
 class DSWorkspace():
     workspaceURL = ''
@@ -24,6 +59,10 @@ class DSWorkspace():
         self.readSettings()
         self.workspaceTreeWidget = None #Will be loaded in by mainWindow
         self.buildUserScripts()
+        self.initDatabaseCommManager()
+
+    def initDatabaseCommManager(self):
+        self.DBCommMgr = databaseCommManager(self)
 
     def readSettings(self):
         print('Loading Settings... ', end="", flush=True)

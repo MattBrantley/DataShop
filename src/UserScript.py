@@ -50,6 +50,8 @@ class ScriptIOData():
         self.units = kwargs.get('units', DSUnits.arbitrary())
         self.prefix = kwargs.get('prefix', DSPrefix.noPrefix())
         self.numDims = 0
+        self.Op = None
+
         tMatrix = kwargs.get('matrix', None)
         if(tMatrix is not None):
             self.setMatrix(tMatrix)

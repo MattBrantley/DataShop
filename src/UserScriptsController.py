@@ -66,9 +66,6 @@ class scriptProcessManager():
         self.queueUpdateTimer.timeout.connect(lambda: self.updateQueueWorkers())
         self.queueUpdateTimer.start(self.tickLength)
 
-    def createJobForQueue(self, uScript, selectedItem):
-        worker = workerObj(uScript, selectedItem, self.workspace, self) #Worker will run and then return addJobToQueue if successful
-
     def addJobToQueue(self, worker):
         self.addProcessToWidget(worker)
 
@@ -139,8 +136,8 @@ class scriptProcessManager():
         worker.releaseMgr()
         self.activeWorkers.remove(worker)
 
-    def submitJob(self, script, selectedItem):
-        self.createJobForQueue(script, selectedItem)
+    def submitJob(self, uScript, selectedItem):
+        worker = workerObj(uScript, selectedItem, self.workspace, self)  # Worker will run and then return addJobToQueue if successful
 
 class userScriptsController():
     scripts = {'Display': [], 'Export': [], 'Generator': [], 'Import': [], 'Interact': [], 'Operation': []}
